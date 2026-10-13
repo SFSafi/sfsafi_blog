@@ -34,4 +34,4 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/sfsafi-browsers npm run test:e2e
 
 ## 文档
 
-[需求](docs/requirements.md) · [架构](docs/architecture.md) · [进度](docs/progress.md) · [部署](docs/deployment.md) · [运维](docs/operations.md) · [媒体和字体来源](docs/licenses.md)
+[需求](docs/requirements.md) · [架构](docs/architecture.md) · [进度](docs/progress.md) · [部署](docs/deployment.md) · [运维](docs/operations.md) · [媒体和字体来源](docs/licenses.md) · [媒体上传需求](docs/media-upload.md)

@@ -48,3 +48,7 @@ PR #1 已合并，Cloudflare production 构建成功；真实 D1 UUID 已绑定�
 本轮本地验证：类型检查 0 errors/0 warnings，26 页构建与 Worker dry-run 成功，20 项 Playwright 全部通过（包括模型协议与公开搜索两项新增检查）。
 
 PR #2 已合入 stage-a，GitHub 推送/PR/main/stage-a 检查与 Cloudflare production 构建通过。真实线上 /api/search 返回 aiAvailable=false；搜索 Astro 能找到原文，关键词模式/稳定链接及四种宽度经真实远程响应复验通过。新数据库表自动建立，原统计仍可读。真实模型待站主配置三项变量后验收。手机导航间距随后调整，保证五个入口文字横排。
+
+## 正文媒体需求更新
+
+已记录站主要求：在线查看/播放为主，原素材/高质量/标准/省空间选项，压缩时可同时保留原素材，处理预览与实际大小。规范见 media-upload.md，替代旧版默认保存每份原始素材的要求。正文媒体上传与视频转码尚未实现，本次仅更新需求/架构及验收标准，未修改现有头像上传或启用付费存储/转码。
