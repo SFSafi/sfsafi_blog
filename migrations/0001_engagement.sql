@@ -8,12 +8,12 @@ CREATE TRIGGER IF NOT EXISTS view_added AFTER INSERT ON views BEGIN
  INSERT INTO post_stats(post_id,views) VALUES(NEW.post_id,1) ON CONFLICT(post_id) DO UPDATE SET views=views+1;
 END;
 CREATE TRIGGER IF NOT EXISTS vote_added AFTER INSERT ON votes BEGIN
- INSERT INTO post_stats(post_id,likes,dislikes) VALUES(NEW.post_id,CASE WHEN NEW.value=1 THEN 1 ELSE 0 END,CASE WHEN NEW.value=-1 THEN 1 ELSE 0 END)
- ON CONFLICT(post_id) DO UPDATE SET likes=likes+CASE WHEN NEW.value=1 THEN 1 ELSE 0 END, dislikes=dislikes+CASE WHEN NEW.value=-1 THEN 1 ELSE 0 END;
+ INSERT INTO post_stats(post_id,likes,dislikes) VALUES(NEW.post_id,(NEW.value=1),(NEW.value=-1))
+ ON CONFLICT(post_id) DO UPDATE SET likes=likes+(NEW.value=1), dislikes=dislikes+(NEW.value=-1);
 END;
 CREATE TRIGGER IF NOT EXISTS vote_changed AFTER UPDATE OF value ON votes BEGIN
- UPDATE post_stats SET likes=likes+(CASE WHEN NEW.value=1 THEN 1 ELSE 0 END)-(CASE WHEN OLD.value=1 THEN 1 ELSE 0 END),dislikes=dislikes+(CASE WHEN NEW.value=-1 THEN 1 ELSE 0 END)-(CASE WHEN OLD.value=-1 THEN 1 ELSE 0 END) WHERE post_id=NEW.post_id;
+ UPDATE post_stats SET likes=likes+((NEW.value=1))-((OLD.value=1)),dislikes=dislikes+((NEW.value=-1))-((OLD.value=-1)) WHERE post_id=NEW.post_id;
 END;
 CREATE TRIGGER IF NOT EXISTS vote_removed AFTER DELETE ON votes BEGIN
- UPDATE post_stats SET likes=likes-(CASE WHEN OLD.value=1 THEN 1 ELSE 0 END),dislikes=dislikes-(CASE WHEN OLD.value=-1 THEN 1 ELSE 0 END) WHERE post_id=OLD.post_id;
+ UPDATE post_stats SET likes=likes-((OLD.value=1)),dislikes=dislikes-((OLD.value=-1)) WHERE post_id=OLD.post_id;
 END;
