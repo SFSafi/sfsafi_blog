@@ -2,7 +2,7 @@
 
 现有网站：https://sfsafi-blog.jonce-z.workers.dev 。已实际检查首页、详情、文章、分页、样式和媒体可访问，未知地址和草稿为 404。站主确认 GitHub 自动部署跟踪 stage-a。
 
-新增功能在 feature/engagement 分支；尚未更新自动部署分支，当前线上仍是上一版界面。D1 ID 已收到，仍需上线验证和账号内 Access 登录配置，不宣称新功能已在线。
+新增功能已通过 PR #1 合入 stage-a，Cloudflare production 构建成功。线上 D1 阅览去重、赞踩切换和取消、公开资料/地点接口及未登录管理拒绝已通过真实请求验证。管理员仍需账号内 Access 登录配置。
 
 ## 1. D1 已提供，自动初始化
 
@@ -14,7 +14,7 @@ Workers Git 自动构建使用 npm run build，部署命令使用 npx wrangler d
 
 keep_vars=true 保留控制台配置的非密钥变量，避免后续 Git 部署抹掉 Access 配置。Secrets 不提交到仓库。
 
-尚需实际自动部署后验证 D1 绑定与初始化。如果 Cloudflare 构建拒绝绑定数据库，检查项目自动部署身份对该数据库的权限；不要把 API Token 发到聊天。docs/cloudflare-schema.sql 仅作为初始结构参考/诊断，正常首次部署不需要站主手动执行。
+当前 D1 绑定与自动初始化已在线验证。将来如果 Cloudflare 构建拒绝绑定数据库，检查项目自动部署身份对该数据库的权限；不要把 API Token 发到聊天。docs/cloudflare-schema.sql 仅作为初始结构参考/诊断，正常首次部署不需要站主手动执行。
 
 未来非初始迁移应单独评审执行，不能把破坏性 SQL 加入启动初始化。站主不需要本地安装或运行命令。
 
@@ -34,7 +34,7 @@ worker 验证 Cf-Access-Jwt-Assertion 的 RS256 签名、issuer、audience、有
 
 ## 当前限制
 
-没有 Cloudflare API 凭据，开发任务无法修改账号 Access 策略；数据库已由站主建立，初始表将由已绑定 Worker 的运行权限自动初始化。以上可在网页完成，不需站主本地安装。当前只验证本地 Workerd/D1 与受控的 Access 签名令牌测试，未验证账号中的真实邮件登录。D1 使用和 Worker 请求受免费额度约束，超过额度时需重新评估费用；没有启用任何付费套餐。
+没有 Cloudflare API 凭据，开发任务无法修改账号 Access 策略；数据库已由站主建立，初始表将由已绑定 Worker 的运行权限自动初始化。以上可在网页完成，不需站主本地安装。本地 Workerd/D1、受控 Access 签名令牌测试以及线上 D1 公开接口已验证；未验证账号中的真实邮件登录。D1 使用和 Worker 请求受免费额度约束，超过额度时需重新评估费用；没有启用任何付费套餐。
 
 正式域名、完整 CMS、图文/视频上传和 QQ 推送尚未实现。代码回滚与内容恢复分别见 operations.md。
 
