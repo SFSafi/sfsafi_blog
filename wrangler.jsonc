@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sfsafi-blog",
+  // AI_API_KEY is a dashboard Secret. AI_BASE_URL, AI_MODEL and
+  // AI_DAILY_LIMIT are dashboard variables; preserve them across Git builds.
   "keep_vars": true,
   "main": "worker/index.ts",
   "compatibility_date": "2026-06-01",
