@@ -1,0 +1,45 @@
+---
+import type { Post } from '../lib/content';
+const { post } = Astro.props as { post: Post };
+const image = post.media.find((m) => m.kind === 'image');
+---
+
+<div
+  class="share-actions"
+  data-share
+  data-share-path={post.canonicalPath}
+  data-share-title={post.title || '一条生活记录'}
+  data-share-body={post.excerpt || post.body}
+  data-share-image={image?.storageKey}
+  data-share-date={post.firstPublishedAt}
+  data-share-location={post.location?.label}
+>
+  <button type="button" data-copy-link>
+    复制链接 ↗
+  </button>
+  <button type="button" data-share-image-button>
+    生成分享图片 ▧
+  </button>
+  <span data-share-status aria-live="polite"></span>
+  <dialog class="share-dialog" aria-label="分享图片预览">
+    <div class="lightbox-toolbar">
+      <strong>分享这条记录</strong>
+      <button type="button" data-share-close>
+        关闭 ✕
+      </button>
+    </div>
+    <img data-share-preview alt="包含这条记录、稳定链接和二维码的分享图片" />
+    <p>图片是内容摘要，完整内容请打开链接。</p>
+    <div class="share-dialog-actions">
+      <a data-share-download download="sfsafi-post.png">
+        保存图片 ↓
+      </a>
+      <button type="button" data-share-native hidden>
+        系统分享 ↗
+      </button>
+    </div>
+  </dialog>
+</div>
+<script>
+  import '../lib/share-client';
+</script>

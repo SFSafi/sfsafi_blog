@@ -55,16 +55,20 @@ const path = Astro.url.pathname;
             width="88"
             height="88"
             alt="SFSafi 的示例头像"
+            data-profile-avatar
           />
           <span class="online">记录中</span>
           <h1>
-            {profile.name}
+            <span data-profile-name>{profile.name}</span>
             <span class="wave">✳</span>
           </h1>
           <p class="handle">{profile.handle}</p>
-          <p class="bio">{profile.bio}</p>
+          <p class="bio" data-profile-bio>
+            {profile.bio}
+          </p>
           <p class="location">
-            <span aria-hidden="true">⌖</span> {profile.location}
+            <span aria-hidden="true">⌖</span>{' '}
+            <span data-profile-location>{profile.location}</span>
           </p>
         </div>
         <nav aria-label="主要导航">
