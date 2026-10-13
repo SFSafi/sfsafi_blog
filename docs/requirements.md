@@ -236,3 +236,14 @@ id、storageKey、kind、mimeType、byteSize、width、height、duration（视�
 - Codex 云端环境：https://learn.chatgpt.com/docs/environments/cloud-environments
 
 上述链接用于实施核实，不把文档发布日期时的产品入口、运行时版本、套餐或 QQ 能力视为永久不变。CMS、托管、媒体和 QQ 服务确定后，把其当前官方配置资料加入 architecture.md。
+
+## 15. 站主补充需求（2026-10-14）
+
+本节为随后明确提出的产品变更，优先于旧版排除点赞等范围约定：
+
+- 部分辅助文字更大，日期、标签、提示与操作约 12–14px。
+- 新增持久化阅览量，以及互斥的点赞/点踩，可取消或切换。匿名按同一浏览器标识统计，不承诺唯一自然人；详情访问按 Asia/Shanghai 日去重。
+- 位置标签明确采用站主手动填写，不读取访客位置/IP 属地；通过受保护管理页添加、修改或移除。
+- 分享可复制稳定链接，或生成包含内容摘要、头像昵称、地点、稳定链接及二维码的图片。
+- 站主可通过浏览器编辑昵称、上传头像。此限定资料管理不等同完整内容 CMS。
+- 现有可访问地址 https://sfsafi-blog.jonce-z.workers.dev ，用户确认已连接 GitHub stage-a 分支自动部署。

@@ -6,5 +6,5 @@ dist/
 !.env.example
 playwright-report/
 test-results/
-
 .wrangler/
+worker/generated/

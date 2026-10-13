@@ -1,0 +1,108 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="手动管理地点">
+  <a class="back-link" href="/admin/profile/">
+    ← 个人资料
+  </a>
+  <section class="page-heading">
+    <h1>
+      为记录<span>添加地点。</span>
+    </h1>
+    <p>地点为你手动填写的公开标签，不获取访客定位。留空可以移除。</p>
+  </section>
+  <form id="location-form" class="about-card">
+    <fieldset disabled>
+      <label>
+        选择内容<select name="postId" aria-label="选择内容"></select>
+      </label>
+      <label>
+        地点
+        <input
+          name="label"
+          maxlength="80"
+          placeholder="例如：上海 · 某咖啡馆"
+        />
+      </label>
+      <button type="submit">保存地点</button>
+    </fieldset>
+    <p id="location-status" aria-live="polite">
+      正在验证登录…
+    </p>
+    <button type="button" data-location-retry hidden>
+      重新加载
+    </button>
+  </form>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('#location-form')!;
+    const fieldset = form.querySelector('fieldset')!;
+    const select = form.elements.namedItem('postId') as HTMLSelectElement;
+    const input = form.elements.namedItem('label') as HTMLInputElement;
+    const status = document.querySelector<HTMLElement>('#location-status')!;
+    const retry = form.querySelector<HTMLButtonElement>(
+      '[data-location-retry]',
+    )!;
+    let posts: { postId: string; title: string; label: string | null }[] = [];
+    async function load() {
+      try {
+        const response = await fetch('/api/admin/locations', {
+          cache: 'no-store',
+        });
+        if (!response.ok)
+          throw new Error(
+            response.status === 401 || response.status === 403
+              ? '请先通过 Cloudflare Access 登录。'
+              : '地点管理尚未配置，请先连接数据库和管理员登录。',
+          );
+        posts = await response.json();
+        select.replaceChildren();
+        for (const post of posts) {
+          const option = document.createElement('option');
+          option.value = post.postId;
+          option.textContent = post.title;
+          select.append(option);
+        }
+        input.value = posts[0]?.label || '';
+        fieldset.disabled = !posts.length;
+        status.textContent = posts.length ? '' : '暂时没有公开内容。';
+        retry.hidden = true;
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : '加载失败。';
+        retry.hidden = false;
+      }
+    }
+    select.addEventListener(
+      'change',
+      () =>
+        (input.value =
+          posts.find((post) => post.postId === select.value)?.label || ''),
+    );
+    retry.addEventListener('click', () => void load());
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (fieldset.disabled) return;
+      const body = { postId: select.value, label: input.value };
+      fieldset.disabled = true;
+      status.textContent = '正在保存…';
+      try {
+        const response = await fetch('/api/admin/locations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || '保存失败。');
+        posts.find((post) => post.postId === body.postId)!.label = result.label;
+        status.textContent = '地点已保存，前台和分享图片会使用这个地点。';
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : '网络错误，请重试。';
+      } finally {
+        fieldset.disabled = false;
+      }
+    });
+    void load();
+  </script>
+</Base>

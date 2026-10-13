@@ -1,0 +1,194 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="管理个人资料">
+  <section class="page-heading">
+    <div class="eyebrow">YOUR OWN SPACE</div>
+    <h1>
+      编辑<span>个人资料。</span>
+    </h1>
+    <p>此页面仅供站主使用，需通过 Cloudflare Access 邮箱登录。</p>
+    <a class="text-link" href="/admin/locations/">
+      编辑每条内容的地点 →
+    </a>
+  </section>
+  <form id="profile-form" class="about-card">
+    <fieldset disabled>
+      <label>
+        昵称
+        <input
+          name="nickname"
+          required
+          maxlength="40"
+          autocomplete="nickname"
+        />
+      </label>
+      <label>
+        简介<textarea name="bio" maxlength="160" rows="3"></textarea>
+      </label>
+      <label>
+        个人位置
+        <input
+          name="location"
+          maxlength="80"
+          placeholder="手动填写，例如：上海"
+        />
+      </label>
+      <label>
+        头像
+        <input
+          name="avatar"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+        />
+        <small>
+          JPEG、PNG 或 WebP；原图最多 10 MB，自动缩小为 512px、200 KB
+          内。图片将随个人资料公开显示。
+        </small>
+      </label>
+      <img
+        id="avatar-preview"
+        src="/media/avatar.svg"
+        width="96"
+        height="96"
+        alt="当前头像"
+      />
+      <label class="checkbox-label">
+        <input type="checkbox" name="removeAvatar" /> 恢复默认头像
+      </label>
+      <button type="submit">保存资料</button>
+    </fieldset>
+    <p id="profile-status" aria-live="polite">
+      正在验证登录…
+    </p>
+    <button type="button" id="profile-retry" hidden>
+      重新加载
+    </button>
+  </form>
+  <script>
+    import { refreshProfile } from '../../lib/profile-client';
+    const form = document.querySelector<HTMLFormElement>('#profile-form')!;
+    const fieldset = form.querySelector('fieldset')!;
+    const status = document.querySelector<HTMLElement>('#profile-status')!;
+    const retry = document.querySelector<HTMLButtonElement>('#profile-retry')!;
+    let processed: Blob | null = null;
+    let preparing = false;
+    let objectUrl: string | null = null;
+    async function load() {
+      try {
+        const response = await fetch('/api/admin/profile', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
+        if (!response.ok)
+          throw new Error(
+            response.status === 401 || response.status === 403
+              ? '尚未登录或登录失效。请通过已配置的 Cloudflare Access 入口重新打开此页。'
+              : '资料管理尚未配置，请先连接数据库和管理员登录。',
+          );
+        const profile = await response.json();
+        (form.elements.namedItem('nickname') as HTMLInputElement).value =
+          profile.name;
+        (form.elements.namedItem('bio') as HTMLTextAreaElement).value =
+          profile.bio;
+        (form.elements.namedItem('location') as HTMLInputElement).value =
+          profile.location;
+        document.querySelector<HTMLImageElement>('#avatar-preview')!.src =
+          profile.avatarUrl;
+        fieldset.disabled = false;
+        status.textContent = '';
+        retry.hidden = true;
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : '加载失败。';
+        retry.hidden = false;
+      }
+    }
+    retry.addEventListener('click', () => void load());
+    const upload = form.elements.namedItem('avatar') as HTMLInputElement;
+    upload.addEventListener('change', async () => {
+      processed = null;
+      const file = upload.files?.[0];
+      if (!file) return;
+      preparing = true;
+      upload.disabled = true;
+      try {
+        if (
+          file.size > 10 * 1024 * 1024 ||
+          !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+        )
+          throw new Error('请选择 10 MB 内的 JPEG、PNG 或 WebP 图片。');
+        const image = await createImageBitmap(file);
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, 512 / image.width, 512 / image.height);
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        canvas
+          .getContext('2d')!
+          .drawImage(image, 0, 0, canvas.width, canvas.height);
+        image.close();
+        processed = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, 'image/webp', 0.85),
+        );
+        if (!processed || processed.size > 200 * 1024)
+          throw new Error('图片压缩后仍过大，请换一张图片。');
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(processed);
+        document.querySelector<HTMLImageElement>('#avatar-preview')!.src =
+          objectUrl;
+        status.textContent = '头像已准备好，点击保存后生效。';
+      } catch (error) {
+        upload.value = '';
+        processed = null;
+        status.textContent =
+          error instanceof Error ? error.message : '图片处理失败。';
+      } finally {
+        preparing = false;
+        upload.disabled = false;
+      }
+    });
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (fieldset.disabled) return;
+      if (preparing) {
+        status.textContent = '头像仍在处理，请稍候再保存。';
+        return;
+      }
+      const data = new FormData(form);
+      data.delete('avatar');
+      if (processed) data.set('avatar', processed, 'avatar.webp');
+      data.set(
+        'removeAvatar',
+        String(
+          (form.elements.namedItem('removeAvatar') as HTMLInputElement).checked,
+        ),
+      );
+      fieldset.disabled = true;
+      status.textContent = '正在保存…';
+      try {
+        const response = await fetch('/api/admin/profile', {
+          method: 'POST',
+          credentials: 'same-origin',
+          body: data,
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || '保存失败。');
+        processed = null;
+        upload.value = '';
+        (form.elements.namedItem('removeAvatar') as HTMLInputElement).checked =
+          false;
+        document.querySelector<HTMLImageElement>('#avatar-preview')!.src =
+          result.avatarUrl;
+        await refreshProfile();
+        status.textContent = '已保存，刷新页面后仍会保留。';
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : '网络错误，请重试。';
+      } finally {
+        fieldset.disabled = false;
+      }
+    });
+    void load();
+  </script>
+</Base>

@@ -1,6 +1,7 @@
 ---
 import { formatDate, type Post } from '../lib/content';
 import MediaGrid from './MediaGrid.astro';
+import Engagement from './Engagement.astro';
 import SharePost from './SharePost.astro';
 const { post, detail = false } = Astro.props as {
   post: Post;
@@ -58,7 +59,7 @@ const { post, detail = false } = Astro.props as {
   <a
     class="post-location"
     data-location-link
-    href={`/locations/${post.location?.id || ''}/`}
+    href={`/locations/?place=${encodeURIComponent(post.location?.label || '')}`}
     hidden={!post.location}
   >
     <span aria-hidden="true">⌖</span> {post.location?.label}
@@ -80,4 +81,9 @@ const { post, detail = false } = Astro.props as {
     <p class="muted">更新于 {formatDate(post.updatedAt)}</p>
   )}
   <SharePost post={post} />
+  <Engagement postId={post.id} detail={detail} />
 </article>
+
+<script>
+  import '../lib/locations-client';
+</script>

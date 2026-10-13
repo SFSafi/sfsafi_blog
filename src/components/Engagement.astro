@@ -1,0 +1,37 @@
+---
+const { postId, detail = false } = Astro.props as {
+  postId: string;
+  detail?: boolean;
+};
+---
+
+<section
+  class="engagement"
+  data-engagement
+  data-post-id={postId}
+  data-detail={detail ? 'true' : 'false'}
+  aria-label="阅览与评价"
+>
+  <div class="engagement-actions">
+    <span class="view-count">
+      <span aria-hidden="true">◉</span> <span data-views>—</span> 次阅览
+    </span>
+    <div class="reaction-buttons">
+      <button type="button" data-vote="1" aria-pressed="false" disabled>
+        <span aria-hidden="true">↑</span> 赞 <span data-likes>—</span>
+      </button>
+      <button type="button" data-vote="-1" aria-pressed="false" disabled>
+        <span aria-hidden="true">↓</span> 踩 <span data-dislikes>—</span>
+      </button>
+    </div>
+  </div>
+  <p class="engagement-status" aria-live="polite">
+    <span data-status>正在加载统计…</span>{' '}
+    <button type="button" data-stats-retry hidden>
+      重试
+    </button>
+  </p>
+</section>
+<script>
+  import '../lib/engagement-client';
+</script>

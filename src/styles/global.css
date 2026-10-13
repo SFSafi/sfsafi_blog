@@ -1282,3 +1282,20 @@
     margin-top: 18px;
   }
 }
+
+@layer components {
+  .profile h1,
+  .post-meta strong,
+  .about-card h2 {
+    overflow-wrap: anywhere;
+  }
+  .post-meta > div {
+    min-width: 0;
+  }
+  .avatar,
+  .post-meta img,
+  .about-card > img,
+  #avatar-preview {
+    object-fit: cover;
+  }
+}
