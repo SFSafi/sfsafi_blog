@@ -1,0 +1,238 @@
+---
+import '../styles/global.css';
+import 'misans/lib/Normal/MiSans-Medium.min.css';
+import { repository } from '../lib/content';
+const {
+  title = '动态',
+  description = 'SFSafi 的个人空间。记录生活与工程笔记。',
+} = Astro.props;
+const profile = await repository.getProfile();
+const path = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f5f6f4" />
+    <title>{title} · SFSafi 的个人空间</title>
+    <link rel="icon" href="/favicon.svg" />
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('space-theme') || 'system';
+        document.documentElement.dataset.theme = [
+          'light',
+          'dark',
+          'sage',
+          'system',
+        ].includes(t)
+          ? t
+          : 'system';
+      } catch {
+        document.documentElement.dataset.theme = 'system';
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">
+      跳到主要内容
+    </a>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="/" aria-label="SFSafi 个人空间首页">
+          <span class="brand-mark">s.</span>
+          <span>
+            个人空间
+            <span class="brand-en">A LITTLE CORNER OF THE INTERNET</span>
+          </span>
+        </a>
+        <div class="profile">
+          <img
+            class="avatar"
+            src="/media/avatar.svg"
+            width="88"
+            height="88"
+            alt="SFSafi 的示例头像"
+          />
+          <span class="online">记录中</span>
+          <h1>
+            {profile.name}
+            <span class="wave">✳</span>
+          </h1>
+          <p class="handle">{profile.handle}</p>
+          <p class="bio">{profile.bio}</p>
+          <p class="location">
+            <span aria-hidden="true">⌖</span> {profile.location}
+          </p>
+        </div>
+        <nav aria-label="主要导航">
+          {[
+            ['/', '动态', '◫'],
+            ['/articles/', '文章', '▤'],
+            ['/tags/', '标签', '⌗'],
+            ['/about/', '关于我', '○'],
+          ].map(([href, label, icon]) => (
+            <a
+              href={href}
+              class:list={{
+                active: href === '/' ? path === '/' : path.startsWith(href),
+              }}
+              aria-current={
+                (href === '/' ? path === '/' : path.startsWith(href))
+                  ? 'page'
+                  : undefined
+              }
+            >
+              <span aria-hidden="true">{icon}</span>
+              {label}
+              {href === '/' && <span class="nav-dot" />}
+            </a>
+          ))}
+        </nav>
+        <div class="sidebar-bottom">
+          <label for="theme">
+            给空间换个颜色 <span aria-hidden="true">◐</span>
+          </label>
+          <select id="theme" aria-label="选择主题">
+            <option value="system">跟随系统</option>
+            <option value="light">晴日 · 浅色</option>
+            <option value="dark">夜晚 · 深色</option>
+            <option value="sage">青苔 · 彩色</option>
+          </select>
+          <p>
+            慢慢写，慢慢生活。
+            <br />
+            <span>© 2026 SFSafi · Built with Astro</span>
+          </p>
+        </div>
+      </aside>
+      <div class="main-column">
+        <header class="topbar">
+          <span>生活里的小事，也值得被记住。</span>
+          <span class="top-status">
+            <i></i> 个人空间
+          </span>
+        </header>
+        <main id="main" tabindex="-1">
+          <slot />
+        </main>
+        <footer class="footer">
+          <span>就写到这里，下次见。</span>
+          <span>✳</span>
+          <a href="/about/">关于这个空间 ↗</a>
+        </footer>
+      </div>
+    </div>
+    <dialog id="lightbox" aria-labelledby="lightbox-title">
+      <div class="lightbox-toolbar">
+        <span id="lightbox-title">图片查看</span>
+        <button id="close-lightbox" aria-label="关闭图片查看">
+          关闭 ✕
+        </button>
+      </div>
+      <div class="lightbox-body">
+        <button id="previous-image" aria-label="上一张图片">
+          ←
+        </button>
+        <img id="full-image" alt="" />
+        <button id="next-image" aria-label="下一张图片">
+          →
+        </button>
+      </div>
+      <p id="image-caption" aria-live="polite"></p>
+    </dialog>
+    <script>
+      const theme = document.querySelector<HTMLSelectElement>('#theme')!;
+      theme.value = document.documentElement.dataset.theme || 'system';
+      theme.addEventListener('change', () => {
+        document.documentElement.dataset.theme = theme.value;
+        try {
+          localStorage.setItem('space-theme', theme.value);
+        } catch {}
+      });
+      const dialog = document.querySelector<HTMLDialogElement>('#lightbox')!;
+      let images: HTMLButtonElement[] = [];
+      let current = 0;
+      let opener: HTMLButtonElement | null = null;
+      const show = () => {
+        const button = images[current];
+        const img = document.querySelector<HTMLImageElement>('#full-image')!;
+        img.src = button.dataset.src!;
+        img.alt = button.dataset.alt!;
+        document.querySelector('#image-caption')!.textContent =
+          `${current + 1} / ${images.length} · ${img.alt}`;
+        (
+          document.querySelector('#previous-image') as HTMLButtonElement
+        ).disabled = images.length < 2;
+        (document.querySelector('#next-image') as HTMLButtonElement).disabled =
+          images.length < 2;
+      };
+      document
+        .querySelectorAll<HTMLButtonElement>('[data-image]')
+        .forEach((button) =>
+          button.addEventListener('click', () => {
+            opener = button;
+            images = Array.from(
+              button
+                .closest('[data-gallery]')!
+                .querySelectorAll<HTMLButtonElement>('[data-image]'),
+            );
+            current = images.indexOf(button);
+            show();
+            dialog.showModal();
+            document.body.classList.add('modal-open');
+          }),
+        );
+      const move = (step: number) => {
+        current = (current + step + images.length) % images.length;
+        show();
+      };
+      document
+        .querySelector('#previous-image')!
+        .addEventListener('click', () => move(-1));
+      document
+        .querySelector('#next-image')!
+        .addEventListener('click', () => move(1));
+      document
+        .querySelector('#close-lightbox')!
+        .addEventListener('click', () => dialog.close());
+      dialog.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') move(-1);
+        if (event.key === 'ArrowRight') move(1);
+      });
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+      dialog.addEventListener('close', () => {
+        document.body.classList.remove('modal-open');
+        opener?.focus();
+      });
+      document
+        .querySelectorAll<HTMLImageElement>('[data-media-image]')
+        .forEach((img) =>
+          img.addEventListener('error', () => {
+            const wrap = img.closest('.image-wrap')!;
+            wrap.classList.add('media-failed');
+            wrap.querySelector<HTMLElement>('.media-error')!.hidden = false;
+          }),
+        );
+      document.querySelectorAll<HTMLVideoElement>('video').forEach((video) => {
+        const error =
+          video.parentElement!.querySelector<HTMLElement>('.video-error')!;
+        const failed = () => {
+          error.hidden = false;
+        };
+        video.addEventListener('error', failed);
+        video.querySelector('source')?.addEventListener('error', failed);
+        video
+          .parentElement!.querySelector('[data-retry]')
+          ?.addEventListener('click', () => {
+            error.hidden = true;
+            video.load();
+          });
+      });
+    </script>
+  </body>
+</html>

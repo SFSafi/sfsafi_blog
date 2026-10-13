@@ -1,0 +1,35 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { repository } from '../../lib/content';
+export async function getStaticPaths() {
+  const posts = [];
+  let page = 1;
+  while (true) {
+    const result = await repository.listPublished({ page, pageSize: 50 });
+    posts.push(...result.items);
+    if (!result.hasMore) break;
+    page++;
+  }
+  return posts.map((post) => ({ params: { id: post.id }, props: { post } }));
+}
+const { post } = Astro.props;
+---
+
+<Base
+  title={post.title || '一条生活记录'}
+  description={post.excerpt || post.body.slice(0, 100)}
+>
+  <a class="back-link" href="/">
+    ← 回到动态
+  </a>
+  <div class="detail-heading">
+    <div class="eyebrow">A MOMENT IN MY SPACE</div>
+    <p>记录是让瞬间多停留一会儿。</p>
+  </div>
+  <PostCard post={post} detail />
+  <div class="end-note">
+    — {post.kind === 'article' ? '全文完' : '这就是这一刻'} —
+    <p>示例内容 · 评论功能将在后续阶段开放</p>
+  </div>
+</Base>

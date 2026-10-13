@@ -1,0 +1,38 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { repository } from '../../lib/content';
+export async function getStaticPaths() {
+  const paths = [];
+  let page = 2;
+  while (true) {
+    const result = await repository.listPublished({ page, pageSize: 4 });
+    if (!result.items.length) break;
+    paths.push({ params: { page: String(page) }, props: result });
+    if (!result.hasMore) break;
+    page++;
+  }
+  return paths;
+}
+const { items, hasMore } = Astro.props;
+const page = Number(Astro.params.page);
+---
+
+<Base title={`动态 · 第 ${page} 页`}>
+  <section class="page-heading">
+    <div class="eyebrow">A LITTLE FURTHER BACK</div>
+    <h1>
+      更早的<span>记录。</span>
+    </h1>
+    <p>第 {page} 页 · 示例内容</p>
+  </section>
+  <div class="feed">
+    {items.map((post) => (
+      <PostCard post={post} />
+    ))}
+  </div>
+  <div class="pagination">
+    <a href={page === 2 ? '/' : `/page/${page - 1}/`}>← 更新的记录</a>
+    {hasMore && <a href={`/page/${page + 1}/`}>更早的记录 →</a>}
+  </div>
+</Base>

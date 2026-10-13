@@ -1,0 +1,45 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { repository } from '../../lib/content';
+export async function getStaticPaths() {
+  return (await repository.getTags()).map((tag) => ({
+    params: { tag },
+    props: { tag },
+  }));
+}
+const { tag } = Astro.props;
+const { items, hasMore } = await repository.listPublished({
+  page: 1,
+  pageSize: 4,
+  tag,
+});
+---
+
+<Base title={`标签 · ${tag}`}>
+  <a class="back-link" href="/tags/">
+    ← 所有标签
+  </a>
+  <section class="page-heading">
+    <div class="eyebrow">FOLLOW A THREAD</div>
+    <h1>
+      # <span>{tag}</span>
+    </h1>
+    <p>与这个话题有关的示例记录。</p>
+  </section>
+  <div class="feed">
+    {items.map((post) => (
+      <PostCard post={post} />
+    ))}
+  </div>
+  {items.length === 0 && (
+    <div class="empty-state">
+      暂时没有公开记录。<a href="/">回到首页</a>
+    </div>
+  )}
+  {hasMore && (
+    <a class="load-more" href={`/tags/${encodeURIComponent(tag)}/page/2/`}>
+      更早的记录 ↓
+    </a>
+  )}
+</Base>

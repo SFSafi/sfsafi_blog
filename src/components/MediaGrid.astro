@@ -1,0 +1,58 @@
+---
+import { repository, type Media } from '../lib/content';
+const { media } = Astro.props as { media: Media[] };
+---
+
+{media.length > 0 && (
+  <div class:list={['media-grid', { single: media.length === 1 }]} data-gallery>
+    {media.map((item) =>
+      item.kind === 'image' ? (
+        <div class="image-wrap">
+          <button
+            class="image-button"
+            data-image
+            data-src={repository.mediaUrl(item)}
+            data-alt={item.alt}
+            aria-label={`查看完整图片：${item.alt}`}
+          >
+            <img
+              data-media-image
+              src={repository.mediaUrl(item)}
+              alt={item.alt}
+              width={item.width}
+              height={item.height}
+              loading="lazy"
+            />
+          </button>
+          <p class="media-error" hidden>
+            图片暂时无法加载。
+            <a href={repository.mediaUrl(item)}>重试打开原图 ↗</a>
+          </p>
+        </div>
+      ) : (
+        <div class="video-wrap">
+          <video
+            controls
+            playsinline
+            preload="none"
+            poster={item.thumbnailKey}
+            aria-label={item.alt}
+          >
+            <source src={repository.mediaUrl(item)} type={item.mimeType} />
+            <track
+              kind="captions"
+              src="/media/flower.vtt"
+              srclang="zh"
+              label="中文描述"
+            />
+            你的浏览器不支持视频播放。
+          </video>
+          <p class="video-error" hidden>
+            视频加载失败。<button data-retry>重试</button>
+          </p>
+          <small>视频示例 · 手动播放 · 无对白</small>
+        </div>
+      ),
+    )}
+  </div>
+)}

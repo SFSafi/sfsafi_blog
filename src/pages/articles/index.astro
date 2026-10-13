@@ -1,0 +1,46 @@
+---
+import Base from '../../layouts/Base.astro';
+import { repository, formatDate } from '../../lib/content';
+const { items, hasMore } = await repository.listPublished({
+  page: 1,
+  pageSize: 4,
+  kind: 'article',
+});
+---
+
+<Base title="文章">
+  <section class="page-heading">
+    <div class="eyebrow">THOUGHTS, WITH A LITTLE MORE ROOM</div>
+    <h1>
+      慢慢<span>写下来。</span>
+    </h1>
+    <p>长一点的思考，和做东西时留下的笔记。</p>
+  </section>
+  <div class="prototype-note">○ 示例文章 · 尚未接入后台</div>
+  <div class="article-list">
+    {items.map((post, index) => (
+      <a class="article-item" href={post.canonicalPath}>
+        <span class="article-number">0{index + 1}</span>
+        <div>
+          <div class="eyebrow">{post.tags.join(' / ')}</div>
+          <h2>{post.title}</h2>
+          <p>{post.excerpt}</p>
+          <time datetime={post.firstPublishedAt}>
+            {formatDate(post.firstPublishedAt!)}
+          </time>
+        </div>
+        <span aria-hidden="true">↗</span>
+      </a>
+    ))}
+  </div>
+  {items.length === 0 && (
+    <div class="empty-state">
+      这里还没有文章。<a href="/">回到动态</a>
+    </div>
+  )}
+  {hasMore && (
+    <a class="load-more" href="/articles/page/2/">
+      更早的文章 ↓
+    </a>
+  )}
+</Base>

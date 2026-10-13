@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import { repository } from '../../lib/content';
+const tags = await repository.getTags();
+const counts = await Promise.all(
+  tags.map(async (tag) => ({
+    tag,
+    count: (await repository.listPublished({ page: 1, pageSize: 100, tag }))
+      .items.length,
+  })),
+);
+---
+
+<Base title="标签">
+  <section class="page-heading">
+    <div class="eyebrow">FOLLOW A THREAD</div>
+    <h1>
+      顺着<span>兴趣走。</span>
+    </h1>
+    <p>给零散的记录，找到一点联系。</p>
+  </section>
+  <div class="tag-directory">
+    {counts.map(({ tag, count }) => (
+      <a href={`/tags/${encodeURIComponent(tag)}/`}>
+        <span>#</span>
+        <h2>{tag}</h2>
+        <small>{count} 条示例记录</small>
+        <span>↗</span>
+      </a>
+    ))}
+  </div>
+</Base>

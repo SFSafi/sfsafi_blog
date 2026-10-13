@@ -1,0 +1,44 @@
+---
+import Base from '../layouts/Base.astro';
+import PostCard from '../components/PostCard.astro';
+import { repository } from '../lib/content';
+const { items, hasMore } = await repository.listPublished({
+  page: 1,
+  pageSize: 4,
+});
+---
+
+<Base title="动态">
+  <section class="page-heading">
+    <div>
+      <div class="eyebrow">THE EVERYDAY, COLLECTED</div>
+      <h1>
+        此刻，<span>与日常。</span>
+      </h1>
+      <p>一些生活切片，一些不成篇的想法。</p>
+    </div>
+    <span class="heading-symbol" aria-hidden="true">
+      ✳
+    </span>
+  </section>
+  <div class="feed-tabs">
+    <span class="selected">
+      全部动态 <small>{String(items.length).padStart(2, '0')}</small>
+    </span>
+    <a href="/articles/">长文与笔记 ↗</a>
+    <span class="feed-note">按时间慢慢展开</span>
+  </div>
+  <div class="prototype-note">
+    <span>○</span> 界面预览 · 以下为示例内容，尚未接入内容管理后台
+  </div>
+  <div class="feed">
+    {items.map((post) => (
+      <PostCard post={post} />
+    ))}
+  </div>
+  {hasMore && (
+    <a class="load-more" href="/page/2/">
+      看看更早的记录 <span>↓</span>
+    </a>
+  )}
+</Base>

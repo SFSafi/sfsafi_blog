@@ -1,0 +1,66 @@
+---
+import { formatDate, type Post } from '../lib/content';
+import MediaGrid from './MediaGrid.astro';
+const { post, detail = false } = Astro.props as {
+  post: Post;
+  detail?: boolean;
+};
+---
+
+<article
+  class:list={['post-card', { pinned: post.pinned, 'detail-card': detail }]}
+>
+  {post.pinned && (
+    <div class="pin-label">
+      <span aria-hidden="true">⌁</span> 置顶 · 从这里开始
+    </div>
+  )}
+  <div class="post-meta">
+    <img src="/media/avatar.svg" width="36" height="36" alt="" />
+    <div>
+      <strong>SFSafi</strong>
+      <span>
+        <time datetime={post.firstPublishedAt}>
+          {formatDate(post.firstPublishedAt!)}
+        </time>{' '}
+        · {post.kind === 'article' ? '文章' : '动态'}
+      </span>
+    </div>
+    <a
+      class="post-permalink"
+      href={post.canonicalPath}
+      aria-label="打开这条内容的稳定链接"
+    >
+      ↗
+    </a>
+  </div>
+  {post.title && (
+    <h2 class="post-title">
+      <a href={post.canonicalPath}>{post.title}</a>
+    </h2>
+  )}
+  <div class="post-body">
+    {(detail ? post.body : post.excerpt || post.body)
+      .split('\n\n')
+      .map((paragraph) => (
+        <p>{paragraph}</p>
+      ))}
+  </div>
+  <MediaGrid media={post.media} />
+  <div class="post-bottom">
+    <div class="tags">
+      {post.tags.map((tag) => (
+        <a href={`/tags/${encodeURIComponent(tag)}/`}># {tag}</a>
+      ))}
+    </div>
+    {!detail && (
+      <a class="read-more" href={post.canonicalPath}>
+        {post.kind === 'article' ? '阅读全文' : '查看动态'}{' '}
+        <span aria-hidden="true">→</span>
+      </a>
+    )}
+  </div>
+  {detail && post.updatedAt !== post.firstPublishedAt && (
+    <p class="muted">更新于 {formatDate(post.updatedAt)}</p>
+  )}
+</article>
