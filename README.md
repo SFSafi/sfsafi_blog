@@ -1,6 +1,6 @@
 # SFSafi 的个人空间
 
-Astro + TypeScript，手机优先的 SNS 风格个人空间。当前为阶段 A 界面原型，所有动态、头像与插画均为示例，不提供真实后台、登录或保存功能。
+Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍为阶段 A 样例；feature/engagement 分支新增真实 D1 互动统计、手动地点和受 Cloudflare Access 保护的资料管理。账号连接尚未完成，线上不宣称这些新能力可用。
 
 ## 云端开发
 
@@ -18,6 +18,8 @@ npm run build
 PLAYWRIGHT_BROWSERS_PATH=/tmp/sfsafi-browsers npx playwright install chromium
 PLAYWRIGHT_BROWSERS_PATH=/tmp/sfsafi-browsers npm run test:e2e
 ```
+
+本地后端：先 npm run build:worker，再 npm run db:local、npm run dev:worker。它使用本地 D1，数据保存在忽略的 .wrangler/，并非生产存储。
 
 生产构建位于 dist/。`npm run preview -- --port 4321` 仅用于内部验证。对外预览需要托管平台，不能把开发服务器当作正式网站。
 

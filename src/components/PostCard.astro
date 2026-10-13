@@ -1,6 +1,8 @@
 ---
 import { formatDate, type Post } from '../lib/content';
 import MediaGrid from './MediaGrid.astro';
+import Engagement from './Engagement.astro';
+import SharePost from './SharePost.astro';
 const { post, detail = false } = Astro.props as {
   post: Post;
   detail?: boolean;
@@ -9,6 +11,7 @@ const { post, detail = false } = Astro.props as {
 
 <article
   class:list={['post-card', { pinned: post.pinned, 'detail-card': detail }]}
+  data-location-post={post.id}
 >
   {post.pinned && (
     <div class="pin-label">
@@ -16,9 +19,15 @@ const { post, detail = false } = Astro.props as {
     </div>
   )}
   <div class="post-meta">
-    <img src="/media/avatar.svg" width="36" height="36" alt="" />
+    <img
+      src="/media/avatar.svg"
+      width="36"
+      height="36"
+      alt=""
+      data-profile-avatar
+    />
     <div>
-      <strong>SFSafi</strong>
+      <strong data-profile-name>SFSafi</strong>
       <span>
         <time datetime={post.firstPublishedAt}>
           {formatDate(post.firstPublishedAt!)}
@@ -47,6 +56,14 @@ const { post, detail = false } = Astro.props as {
       ))}
   </div>
   <MediaGrid media={post.media} />
+  <a
+    class="post-location"
+    data-location-link
+    href={`/locations/?place=${encodeURIComponent(post.location?.label || '')}`}
+    hidden={!post.location}
+  >
+    <span aria-hidden="true">⌖</span> {post.location?.label}
+  </a>
   <div class="post-bottom">
     <div class="tags">
       {post.tags.map((tag) => (
@@ -63,4 +80,10 @@ const { post, detail = false } = Astro.props as {
   {detail && post.updatedAt !== post.firstPublishedAt && (
     <p class="muted">更新于 {formatDate(post.updatedAt)}</p>
   )}
+  <SharePost post={post} />
+  <Engagement postId={post.id} detail={detail} />
 </article>
+
+<script>
+  import '../lib/locations-client';
+</script>

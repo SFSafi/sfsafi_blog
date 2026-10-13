@@ -24,3 +24,15 @@ Astro 7.3.8 静态输出 + TypeScript 6.0.3，原生 CSS 与小范围客户端�
 - 小米 MiSans：https://hyperos.mi.com/font/zh/
 
 安装依据 npm 公布的 Astro 7.3.8 engines（Node >=22.12.0）及当前官方安装文档。运行机器和保存配置分别验证；未宣称新任务恢复或正式部署完成。
+
+## 用户授权的互动与资料扩展
+
+Astro 保留静态页面，worker/index.ts 接受 /api/* 请求并通过 ASSETS 返回静态资源。生产配置 wrangler.jsonc 尚待真实 D1 ID；wrangler.local.jsonc 仅用于本地 Workerd/D1，不得部署其模拟 UUID。compatibility_date 保守使用 2026-07-01，以兼容当前稳定测试运行时，不依赖未来日期。
+
+D1 表：visitors 仅存随机 HttpOnly Cookie 的 SHA-256 哈希；views 的 (post_id, visitor_id, day) 唯一键按上海日去重；votes 的 (post_id, visitor_id) 唯一键确保赞/踩互斥。触发器在同一事务维护 post_stats，切换/取消不会重复累计。rate_limits 每访客一分钟最多 60 次统计操作；这不是自然人身份校验或完整防刷，换浏览器/清 Cookie 会被视为新访客。公开记录以稳定 ID 关联，草稿在接口层被拒绝。列表仅读取统计；可见的详情页记录浏览。
+
+资料管理使用 Cloudflare Access，而非自行编写密码系统。通过 jose 验证 RS256 签名、issuer、audience、有效期；只有管理员应用 Allow 策略授权的登录能得到可用断言。写请求检查同源 Origin。头像客户端缩为最多 512px、WebP/200KB，服务端独立验证 MIME、文件头/尺寸、16–1024px 与 200KB 限制。仅允许 JPEG/PNG/WebP，不接受 SVG。profile 与小头像 BLOB 存入 D1，头像使用不可变版本 URL；此小规模头像能力不用于大量照片或视频。
+
+post_locations 保存站主手动填写地点的覆盖值，留空移除。管理员管理现有已发布样例的地点；正式发文 CMS 接入后可把字段合并进 CMS 数据模型。公开页面异步读取地点，地点目录按标签展示稳定内容链接，不获取访客定位。昵称和头像也由公开资料 API 更新；静态 HTML 的 SEO 与禁用 JS 回退仍为构建时样例，后续正式 CMS 再统一渲染。
+
+分享功能完全在浏览器生成 PNG，使用当前公开头像昵称、地点、摘要、稳定绝对 URL 与二维码；不上传分享图片。正文摘要上限 600 字，多图只取第一张作为分享配图；完整内容通过链接访问。复制失败提供手动复制入口，系统支持文件分享时显示系统分享按钮。

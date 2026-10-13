@@ -101,7 +101,10 @@ test('媒体失败提示及视频重试', async ({ page }) => {
   });
   await expect(page.locator('.video-error')).toBeVisible();
   await page.unroute('**/media/flower.mp4');
-  await page.getByRole('button', { name: '重试', exact: true }).click();
+  await page
+    .locator('.video-error')
+    .getByRole('button', { name: '重试', exact: true })
+    .click();
   await expect(page.locator('.video-error')).toBeHidden();
   await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
   await expect

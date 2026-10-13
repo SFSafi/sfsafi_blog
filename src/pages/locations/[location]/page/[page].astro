@@ -1,0 +1,48 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import PostCard from '../../../../components/PostCard.astro';
+import { repository } from '../../../../lib/content';
+export async function getStaticPaths() {
+  const paths = [];
+  for (const location of await repository.getLocations()) {
+    let page = 2;
+    while (true) {
+      const result = await repository.listPublished({
+        page,
+        pageSize: 4,
+        location: location.id,
+      });
+      if (!result.items.length) break;
+      paths.push({
+        params: { page: String(page), location: location.id },
+        props: { ...result, location },
+      });
+      if (!result.hasMore) break;
+      page++;
+    }
+  }
+  return paths;
+}
+const { items, hasMore, location } = Astro.props;
+const page = Number(Astro.params.page);
+const root = `/locations/${location.id}/`;
+---
+
+<Base title={`${location.label} · 第 ${page} 页`}>
+  <a class="back-link" href={root}>
+    ← 返回地点
+  </a>
+  <section class="page-heading">
+    <h1>{location.label}</h1>
+    <p>第 {page} 页</p>
+  </section>
+  <div class="feed">
+    {items.map((post) => (
+      <PostCard post={post} />
+    ))}
+  </div>
+  <div class="pagination">
+    <a href={page === 2 ? root : `${root}page/${page - 1}/`}>← 更新的记录</a>
+    {hasMore && <a href={`${root}page/${page + 1}/`}>更早的记录 →</a>}
+  </div>
+</Base>

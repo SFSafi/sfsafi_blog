@@ -1,0 +1,40 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { repository } from '../../lib/content';
+export async function getStaticPaths() {
+  return (await repository.getLocations()).map((location) => ({
+    params: { location: location.id },
+    props: { location },
+  }));
+}
+const { location } = Astro.props;
+const { items, hasMore } = await repository.listPublished({
+  page: 1,
+  pageSize: 4,
+  location: location.id,
+});
+---
+
+<Base title={location.label}>
+  <a class="back-link" href="/locations/">
+    ← 所有地点
+  </a>
+  <section class="page-heading">
+    <div class="eyebrow">PLACES IN MY NOTES</div>
+    <h1>
+      <span>{location.label}</span>
+    </h1>
+    <p>发布者手动填写的地点；示例内容。</p>
+  </section>
+  <div class="feed">
+    {items.map((post) => (
+      <PostCard post={post} />
+    ))}
+  </div>
+  {hasMore && (
+    <a class="load-more" href={`/locations/${location.id}/page/2/`}>
+      更早的记录 ↓
+    </a>
+  )}
+</Base>

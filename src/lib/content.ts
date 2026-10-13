@@ -13,6 +13,10 @@ export interface Media {
   createdAt: string;
   duration?: number;
 }
+export interface PostLocation {
+  id: string;
+  label: string;
+}
 export interface Post {
   id: string;
   kind: 'note' | 'article';
@@ -25,6 +29,7 @@ export interface Post {
   media: Media[];
   tags: string[];
   pinned: boolean;
+  location?: PostLocation;
   createdAt: string;
   updatedAt: string;
   firstPublishedAt?: string;
@@ -43,9 +48,11 @@ export interface ContentRepository {
     pageSize: number;
     kind?: Post['kind'];
     tag?: string;
+    location?: string;
   }): Promise<{ items: Post[]; hasMore: boolean }>;
   getPublished(id: string): Promise<Post | undefined>;
   getTags(): Promise<string[]>;
+  getLocations(): Promise<PostLocation[]>;
   getProfile(): Promise<Profile>;
   mediaUrl(media: Media): string;
 }
@@ -96,7 +103,7 @@ const posts: Post[] = [
     '把日子写下来，把想法留在这里。\n\n这里是我的个人空间：一些生活片段，一些工程笔记，还有偶尔冒出来的灵感。不急着给每件事一个结论，先认真感受，再慢慢记录。\n\n欢迎你来坐坐。 ☕',
     ['日常', '随想'],
     '2026-10-13T01:00:00Z',
-    { pinned: true },
+    { pinned: true, location: { id: 'online', label: '线上' } },
   ),
   create(
     'afternoon-walk',
@@ -104,6 +111,7 @@ const posts: Post[] = [
     ['日常', '散步'],
     '2026-10-12T07:24:00Z',
     {
+      location: { id: 'lakeside', label: '湖边 · 示例地点' },
       media: [
         image('landscape', '原创示例插画：湖边的山与夕阳'),
         image('window', '原创示例插画：窗边的一杯咖啡'),
@@ -183,9 +191,12 @@ const published = () =>
         Date.parse(b.firstPublishedAt!) - Date.parse(a.firstPublishedAt!),
     );
 export const repository: ContentRepository = {
-  async listPublished({ page, pageSize, kind, tag }) {
+  async listPublished({ page, pageSize, kind, tag, location }) {
     const list = published().filter(
-      (p) => (!kind || p.kind === kind) && (!tag || p.tags.includes(tag)),
+      (p) =>
+        (!kind || p.kind === kind) &&
+        (!tag || p.tags.includes(tag)) &&
+        (!location || p.location?.id === location),
     );
     const start = (page - 1) * pageSize;
     return {
@@ -199,6 +210,15 @@ export const repository: ContentRepository = {
   async getTags() {
     return [...new Set(published().flatMap((p) => p.tags))];
   },
+  async getLocations() {
+    return [
+      ...new Map(
+        published()
+          .filter((p) => p.location)
+          .map((p) => [p.location!.id, p.location!]),
+      ).values(),
+    ];
+  },
   async getProfile() {
     return {
       name: 'SFSafi',
@@ -211,13 +231,7 @@ export const repository: ContentRepository = {
     return media.storageKey;
   },
 };
-export const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('zh-CN', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(date));
+export { formatDate } from './date';
 export interface PublicationEvent {
   eventId: string;
   postId: string;

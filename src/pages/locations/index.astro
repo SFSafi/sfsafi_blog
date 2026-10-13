@@ -1,0 +1,28 @@
+---
+import Base from '../../layouts/Base.astro';
+import { repository } from '../../lib/content';
+const locations = await repository.getLocations();
+---
+
+<Base title="地点">
+  <section class="page-heading">
+    <div class="eyebrow">PLACES IN MY NOTES</div>
+    <h1>
+      记录里的<span>地点。</span>
+    </h1>
+    <p>地点由发布者填写；不获取访客定位。当前为示例地点。</p>
+  </section>
+  <div class="tag-directory" data-location-directory>
+    {locations.map((location) => (
+      <a href={`/locations/${location.id}/`}>
+        <span aria-hidden="true">⌖</span>
+        <h2>{location.label}</h2>
+        <span aria-hidden="true">↗</span>
+      </a>
+    ))}
+  </div>
+</Base>
+
+<script>
+  import '../../lib/locations-client';
+</script>
