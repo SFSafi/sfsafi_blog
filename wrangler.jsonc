@@ -1,8 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sfsafi-blog",
+  "keep_vars": true,
   "main": "worker/index.ts",
-  "compatibility_date": "2026-07-01",
+  "compatibility_date": "2026-06-01",
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -13,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "sfsafi-engagement",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "database_id": "8713524f-f776-4dbc-8a9f-1b03414c6cf6",
       "migrations_dir": "migrations",
     },
   ],

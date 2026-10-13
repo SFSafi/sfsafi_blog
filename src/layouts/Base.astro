@@ -41,7 +41,12 @@ const path = Astro.url.pathname;
     </a>
     <div class="shell">
       <aside class="sidebar">
-        <a class="brand" href="/" aria-label="SFSafi 个人空间首页">
+        <a
+          class="brand"
+          data-profile-brand
+          href="/"
+          aria-label="SFSafi 个人空间首页"
+        >
           <span class="brand-mark">s.</span>
           <span>
             个人空间
@@ -108,7 +113,9 @@ const path = Astro.url.pathname;
           <p>
             慢慢写，慢慢生活。
             <br />
-            <span>© 2026 SFSafi · Built with Astro</span>
+            <span>
+              © 2026 <span data-profile-name>SFSafi</span> · Built with Astro
+            </span>
           </p>
         </div>
       </aside>
@@ -216,13 +223,15 @@ const path = Astro.url.pathname;
       });
       document
         .querySelectorAll<HTMLImageElement>('[data-media-image]')
-        .forEach((img) =>
-          img.addEventListener('error', () => {
+        .forEach((img) => {
+          const failed = () => {
             const wrap = img.closest('.image-wrap')!;
             wrap.classList.add('media-failed');
             wrap.querySelector<HTMLElement>('.media-error')!.hidden = false;
-          }),
-        );
+          };
+          img.addEventListener('error', failed);
+          if (img.complete && img.naturalWidth === 0) failed();
+        });
       document.querySelectorAll<HTMLVideoElement>('video').forEach((video) => {
         const error =
           video.parentElement!.querySelector<HTMLElement>('.video-error')!;

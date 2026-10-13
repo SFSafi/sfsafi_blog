@@ -1,3 +1,4 @@
+import { ensureInitialSchema } from './schema';
 import { readLimitedText, BodyTooLargeError } from './http';
 import type { D1Database } from '@cloudflare/workers-types';
 import { locationRoute } from './locations';
@@ -112,6 +113,17 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    if (env.DB) {
+      try {
+        await ensureInitialSchema(env.DB);
+      } catch (error) {
+        console.error(
+          'Initial schema failed',
+          error instanceof Error ? error.message : 'unknown',
+        );
+        return json({ error: '数据库初始化暂不可用，请稍后重试。' }, 503);
+      }
+    }
     const locationResponse = await locationRoute(request, env);
     if (locationResponse) return locationResponse;
     const profileResponse = await profileRoute(request, env);

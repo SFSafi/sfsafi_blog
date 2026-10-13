@@ -96,7 +96,7 @@ for (const section of document.querySelectorAll<HTMLElement>('[data-share]')) {
         photo = await loadImage(
           new URL(section.dataset.shareImage, location.origin).href,
         );
-      canvas.height = 460 + textHeight + (photo ? 460 : 0);
+      canvas.height = 520 + textHeight + (photo ? 460 : 0);
       ctx.fillStyle = '#f7f8f3';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#e9eee3';
@@ -109,12 +109,23 @@ for (const section of document.querySelectorAll<HTMLElement>('[data-share]')) {
         ctx.beginPath();
         ctx.arc(96, 102, 32, 0, Math.PI * 2);
         ctx.clip();
-        ctx.drawImage(picture, 64, 70, 64, 64);
+        const square = Math.min(picture.naturalWidth, picture.naturalHeight);
+        ctx.drawImage(
+          picture,
+          (picture.naturalWidth - square) / 2,
+          (picture.naturalHeight - square) / 2,
+          square,
+          square,
+          64,
+          70,
+          64,
+          64,
+        );
         ctx.restore();
       }
       ctx.fillStyle = '#29352e';
       ctx.font = '500 27px MiSans, sans-serif';
-      ctx.fillText(name, 146, 96);
+      ctx.fillText(name, 146, 96, 690);
       ctx.fillStyle = '#69736b';
       ctx.font = '500 20px MiSans, sans-serif';
       ctx.fillText(formatDate(section.dataset.shareDate!), 146, 129);
@@ -147,19 +158,19 @@ for (const section of document.querySelectorAll<HTMLElement>('[data-share]')) {
       }
       const qr = document.createElement('canvas');
       await QRCode.toCanvas(qr, url, {
-        width: 110,
+        width: 180,
         margin: 1,
         errorCorrectionLevel: 'M',
       });
-      const bottom = canvas.height - 172;
-      ctx.drawImage(qr, 64, bottom, 110, 110);
+      const bottom = canvas.height - 230;
+      ctx.drawImage(qr, 64, bottom, 180, 180);
       ctx.font = '500 22px MiSans, sans-serif';
       ctx.fillStyle = '#476852';
-      ctx.fillText('扫码，读完整记录', 198, bottom + 35);
+      ctx.fillText('扫码，读完整记录', 274, bottom + 35);
       ctx.font = '500 16px MiSans, sans-serif';
       ctx.fillStyle = '#69736b';
-      for (const [index, line] of wrap(ctx, url, 605).entries())
-        ctx.fillText(line, 198, bottom + 67 + index * 24);
+      for (const [index, line] of wrap(ctx, url, 558).entries())
+        ctx.fillText(line, 274, bottom + 67 + index * 24);
       blob = await new Promise<Blob>((resolve, reject) =>
         canvas.toBlob(
           (value) =>

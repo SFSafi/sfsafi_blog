@@ -2,17 +2,21 @@
 
 现有网站：https://sfsafi-blog.jonce-z.workers.dev 。已实际检查首页、详情、文章、分页、样式和媒体可访问，未知地址和草稿为 404。站主确认 GitHub 自动部署跟踪 stage-a。
 
-新增功能在 feature/engagement 分支；尚未更新自动部署分支，当前线上仍是上一版界面。缺 D1 ID 和账号内 Access 登录配置，不宣称新功能已在线。
+新增功能在 feature/engagement 分支；尚未更新自动部署分支，当前线上仍是上一版界面。D1 ID 已收到，仍需上线验证和账号内 Access 登录配置，不宣称新功能已在线。
 
-## 1. D1（仅网页操作）
+## 1. D1 已提供，自动初始化
 
-1. Cloudflare 控制台 → 存储与数据库 → D1，创建 sfsafi-engagement。
-2. 将数据库 ID（非密钥 UUID）提供给开发任务，用于替换 wrangler.jsonc 的 REPLACE_WITH_YOUR_D1_DATABASE_ID。不得把占位符配置用于线上部署。
-3. 在 D1 控制台打开 Console，粘贴 docs/cloudflare-schema.sql 中的 SQL 并执行，初始化三个迁移的表与触发器。此脚本为幂等 CREATE IF NOT EXISTS，不删除内容。未来升级按 migrations/ 的新文件单独应用。
-4. Workers Git 自动构建命令使用 npm run build，部署命令使用 npx wrangler deploy；部署配置读取仓库的 wrangler.jsonc，DB 绑定指向上面创建的 D1，ASSETS 绑定指向 dist。
-5. 完成设置后由开发任务将通过检查的功能提交到 stage-a，Git 集成触发部署。不要修改当前线上配置或合并功能分支后再填数据库，以免构建失败。
+站主已提供数据库 UUID，已写入 wrangler.jsonc 的 DB 绑定：8713524f-f776-4dbc-8a9f-1b03414c6cf6。
 
-如 Cloudflare 构建环境已具备 D1 migration 权限，可改成先运行 `npx wrangler d1 migrations apply sfsafi-engagement --remote`，再 `npx wrangler deploy`；未验证其权限前不默认使用这个自动迁移路径。站主不需要在本地运行命令或传 API Token。
+无需复制 SQL 到网页：Worker 首次 API 请求会自动建立初始表与触发器，并用 space_schema 记录版本。初始化只接受初始三个迁移中的 CREATE TABLE/TRIGGER IF NOT EXISTS；每个版本在事务中提交，不删除/替换现有数据，可安全重复。构建时 npm prepare 从迁移文件生成忽略的 Worker schema 模块，不把测试数据库提交到 Git。
+
+Workers Git 自动构建使用 npm run build，部署命令使用 npx wrangler deploy；部署读取 wrangler.jsonc，DB 指向该 D1，ASSETS 指向 dist。如果当前部署命令带 --assets ./dist，可以保留；它仍需部署 main 字段的 worker/index.ts，而不能切换成仅静态资源模式。
+
+keep_vars=true 保留控制台配置的非密钥变量，避免后续 Git 部署抹掉 Access 配置。Secrets 不提交到仓库。
+
+尚需实际自动部署后验证 D1 绑定与初始化。如果 Cloudflare 构建拒绝绑定数据库，检查项目自动部署身份对该数据库的权限；不要把 API Token 发到聊天。docs/cloudflare-schema.sql 仅作为初始结构参考/诊断，正常首次部署不需要站主手动执行。
+
+未来非初始迁移应单独评审执行，不能把破坏性 SQL 加入启动初始化。站主不需要本地安装或运行命令。
 
 ## 2. Cloudflare Access 管理员登录
 
@@ -30,7 +34,7 @@ worker 验证 Cf-Access-Jwt-Assertion 的 RS256 签名、issuer、audience、有
 
 ## 当前限制
 
-没有 Cloudflare API 凭据，开发任务无法代建数据库、修改账号 Access 策略或执行远程迁移。以上可在网页完成，不需站主本地安装。当前只验证本地 Workerd/D1 与受控的 Access 签名令牌测试，未验证账号中的真实邮件登录。D1 使用和 Worker 请求受免费额度约束，超过额度时需重新评估费用；没有启用任何付费套餐。
+没有 Cloudflare API 凭据，开发任务无法修改账号 Access 策略；数据库已由站主建立，初始表将由已绑定 Worker 的运行权限自动初始化。以上可在网页完成，不需站主本地安装。当前只验证本地 Workerd/D1 与受控的 Access 签名令牌测试，未验证账号中的真实邮件登录。D1 使用和 Worker 请求受免费额度约束，超过额度时需重新评估费用；没有启用任何付费套餐。
 
 正式域名、完整 CMS、图文/视频上传和 QQ 推送尚未实现。代码回滚与内容恢复分别见 operations.md。
 

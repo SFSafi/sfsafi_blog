@@ -27,7 +27,7 @@ test('本地 Workerd + D1：Access 签名验证、头像昵称持久化和重启
   const options = {
     script: readFileSync('/tmp/sfsafi-worker-bundle/index.js', 'utf8'),
     modules: true,
-    compatibilityDate: '2026-07-01',
+    compatibilityDate: '2026-06-01',
     d1Databases: { DB: 'profile-test' },
     d1Persist: dir,
     bindings: {
@@ -47,17 +47,9 @@ test('本地 Workerd + D1：Access 签名验证、头像昵称持久化和重启
   }
 
   try {
-    const db = await mf.getD1Database('DB');
-    for (const filename of [
-      '0001_engagement.sql',
-      '0002_profile.sql',
-      '0003_locations.sql',
-    ])
-      await db.exec(
-        readFileSync('migrations/' + filename, 'utf8')
-          .replace(/^--.*$/gm, '')
-          .replace(/\n/g, ' '),
-      );
+    expect((await dispatch('https://example.com/api/profile')).status).toBe(
+      200,
+    );
     const sign = (aud = 'profile-test-audience', exp = '1h') =>
       new SignJWT({ email: 'owner@example.com' })
         .setProtectedHeader({ alg: 'RS256', kid: jwk.kid })
@@ -196,6 +188,23 @@ test('本地 Workerd + D1：Access 签名验证、头像昵称持久化和重启
     await expect(page.locator('[data-profile-name]').first()).toHaveText(
       '浏览器修改昵称',
     );
+    await page
+      .getByRole('textbox', { name: '昵称', exact: true })
+      .fill('W'.repeat(40));
+    await page.getByRole('button', { name: '保存资料', exact: true }).click();
+    await expect(page.locator('#profile-status')).toContainText('已保存');
+    await page.goto('http://127.0.0.1:4321/posts/afternoon-walk/');
+    await expect(page.locator('[data-profile-name]').first()).toHaveText(
+      'W'.repeat(40),
+    );
+    for (const width of [360, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 960 });
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
     await page.goto('http://127.0.0.1:4321/admin/locations/');
     await expect(page.locator('select[name=postId]')).toBeEnabled();
     await page.locator('select[name=postId]').selectOption('afternoon-walk');

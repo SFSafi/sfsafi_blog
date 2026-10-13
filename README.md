@@ -1,6 +1,6 @@
 # SFSafi 的个人空间
 
-Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍为阶段 A 样例；feature/engagement 分支新增真实 D1 互动统计、手动地点和受 Cloudflare Access 保护的资料管理。账号连接尚未完成，线上不宣称这些新能力可用。
+Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍为阶段 A 样例；feature/engagement 分支新增真实 D1 互动统计、手动地点和受 Cloudflare Access 保护的资料管理。D1 UUID 已由站主提供，后台发布正在验证；管理员登录仍需在 Cloudflare 配置，不能称头像/昵称/地点编辑已可在线使用。
 
 ## 云端开发
 

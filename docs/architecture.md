@@ -27,7 +27,7 @@ Astro 7.3.8 静态输出 + TypeScript 6.0.3，原生 CSS 与小范围客户端�
 
 ## 用户授权的互动与资料扩展
 
-Astro 保留静态页面，worker/index.ts 接受 /api/* 请求并通过 ASSETS 返回静态资源。生产配置 wrangler.jsonc 尚待真实 D1 ID；wrangler.local.jsonc 仅用于本地 Workerd/D1，不得部署其模拟 UUID。compatibility_date 保守使用 2026-07-01，以兼容当前稳定测试运行时，不依赖未来日期。
+Astro 保留静态页面，worker/index.ts 接受 /api/* 请求并通过 ASSETS 返回静态资源。生产配置 wrangler.jsonc 已填写站主提供的真实 D1 ID；wrangler.local.jsonc 仅用于本地 Workerd/D1，不得部署其模拟 UUID。compatibility_date 保守使用 2026-06-01，以兼容当前稳定测试运行时，不依赖未来日期。
 
 D1 表：visitors 仅存随机 HttpOnly Cookie 的 SHA-256 哈希；views 的 (post_id, visitor_id, day) 唯一键按上海日去重；votes 的 (post_id, visitor_id) 唯一键确保赞/踩互斥。触发器在同一事务维护 post_stats，切换/取消不会重复累计。rate_limits 每访客一分钟最多 60 次统计操作；这不是自然人身份校验或完整防刷，换浏览器/清 Cookie 会被视为新访客。公开记录以稳定 ID 关联，草稿在接口层被拒绝。列表仅读取统计；可见的详情页记录浏览。
 
@@ -36,3 +36,7 @@ D1 表：visitors 仅存随机 HttpOnly Cookie 的 SHA-256 哈希；views 的 (p
 post_locations 保存站主手动填写地点的覆盖值，留空移除。管理员管理现有已发布样例的地点；正式发文 CMS 接入后可把字段合并进 CMS 数据模型。公开页面异步读取地点，地点目录按标签展示稳定内容链接，不获取访客定位。昵称和头像也由公开资料 API 更新；静态 HTML 的 SEO 与禁用 JS 回退仍为构建时样例，后续正式 CMS 再统一渲染。
 
 分享功能完全在浏览器生成 PNG，使用当前公开头像昵称、地点、摘要、稳定绝对 URL 与二维码；不上传分享图片。正文摘要上限 600 字，多图只取第一张作为分享配图；完整内容通过链接访问。复制失败提供手动复制入口，系统支持文件分享时显示系统分享按钮。
+
+初始数据库结构通过 Worker 请求时幂等 bootstrap，按版本进行批量事务创建，仅支持初始加法迁移；npm prepare 从迁移文件生成忽略的 SQL 模块。新数据库与进程重启场景纳入测试。未来非初始迁移仍需单独评审，不自动运行删除/改写数据的 SQL。
+
+Wrangler 固定 4.100.0（配套稳定 Miniflare 4），避免当前最新 CLI 的 beta 本地开发 SDK 在反复重建时留下监听端口。该日期与稳定运行时兼容，所用 D1/Assets/Web Crypto 能力均已支持。

@@ -14,6 +14,10 @@ export async function refreshProfile() {
     });
     if (!response.ok) return;
     const profile: PublicProfile = await response.json();
+    document.title = `${document.title.split(' · ')[0]} · ${profile.name} 的个人空间`;
+    document
+      .querySelector('[data-profile-brand]')
+      ?.setAttribute('aria-label', `${profile.name} 个人空间首页`);
     for (const element of document.querySelectorAll('[data-profile-name]'))
       element.textContent = profile.name;
     for (const element of document.querySelectorAll<HTMLImageElement>(

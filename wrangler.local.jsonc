@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sfsafi-blog-local",
   "main": "worker/index.ts",
-  "compatibility_date": "2026-07-01",
+  "compatibility_date": "2026-06-01",
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
