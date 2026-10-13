@@ -1,0 +1,162 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="站内搜索">
+  <section class="page-heading">
+    <div class="eyebrow">FIND SOMETHING IN THIS SPACE</div>
+    <h1>
+      找一段<span>记录。</span>
+    </h1>
+    <p>输入关键词，或者用一句话描述你想找的站内内容。</p>
+  </section>
+  <section class="search-panel">
+    <form id="search-form">
+      <label for="search-query">你想找什么？</label>
+      <div class="search-controls">
+        <input
+          id="search-query"
+          name="query"
+          type="search"
+          maxlength="200"
+          required
+          placeholder="例如：关于 Astro 建站的记录"
+        />
+        <button type="submit">搜索</button>
+      </div>
+    </form>
+    <p class="search-note">
+      启用 AI
+      后，问题及相关公开内容会发送给站主配置的模型服务。请勿输入个人敏感信息。AI
+      回答可能有误，请以原文为准。
+    </p>
+    <p id="search-status" role="status" aria-live="polite"></p>
+    <div id="search-answer" hidden></div>
+    <ul id="search-results" aria-label="搜索结果"></ul>
+  </section>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('#search-form')!;
+    const input = document.querySelector<HTMLInputElement>('#search-query')!;
+    const button = form.querySelector<HTMLButtonElement>('button')!;
+    const status = document.querySelector<HTMLElement>('#search-status')!;
+    const answer = document.querySelector<HTMLElement>('#search-answer')!;
+    const results = document.querySelector<HTMLElement>('#search-results')!;
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (button.disabled) return;
+      button.disabled = true;
+      button.textContent = '搜索中…';
+      status.textContent = '正在查找站内内容…';
+      answer.hidden = true;
+      answer.textContent = '';
+      results.replaceChildren();
+      try {
+        const response = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: input.value }),
+          signal: AbortSignal.timeout(20000),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '搜索暂不可用。');
+        if (data.mode === 'ai') {
+          answer.textContent = data.answer;
+          answer.hidden = false;
+        }
+        for (const item of data.sources) {
+          // Only render repository-issued stable local paths; all text is inert.
+          if (!/^\/posts\/[a-z0-9-]+\/$/.test(item.path)) continue;
+          const li = document.createElement('li'),
+            link = document.createElement('a'),
+            summary = document.createElement('p');
+          link.href = item.path;
+          link.textContent = item.title;
+          summary.textContent = item.excerpt;
+          li.append(link, summary);
+          results.append(li);
+        }
+        status.textContent =
+          data.notice ||
+          (data.mode === 'ai' ? 'AI 整理 · 原文如下' : '关键词搜索');
+        if (!results.children.length)
+          status.textContent += ' · 未找到相关内容，试试换个说法。';
+      } catch (error) {
+        status.textContent =
+          error instanceof Error && error.name !== 'TimeoutError'
+            ? error.message
+            : '搜索超时，请稍后重试。';
+      } finally {
+        button.disabled = false;
+        button.textContent = '搜索';
+      }
+    });
+  </script>
+</Base>
+<style is:global>
+  .search-panel {
+    padding: 24px 32px;
+  }
+  .search-panel label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .search-controls {
+    display: flex;
+    gap: 12px;
+  }
+  .search-controls input {
+    min-width: 0;
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+  }
+  .search-controls button {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font: inherit;
+  }
+  .search-note {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-top: 16px;
+  }
+  #search-answer {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    padding: 18px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  #search-status {
+    font-size: 14px;
+  }
+  #search-results {
+    list-style: none;
+    padding: 0;
+  }
+  #search-results li {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--line);
+    overflow-wrap: anywhere;
+  }
+  #search-results a {
+    font-weight: 600;
+  }
+  #search-results p {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 8px 0 0;
+  }
+  @media (max-width: 600px) {
+    .search-panel {
+      padding: 20px;
+    }
+  }
+</style>

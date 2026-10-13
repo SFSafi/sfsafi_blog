@@ -40,3 +40,9 @@ PR #1 已合并，Cloudflare production 构建成功；真实 D1 UUID 已绑定�
 补充验证：空数据库首次请求自动初始化、重复初始化与重启后保留；40 字符长昵称在四种宽度不溢出；头像显示和分享头像居中保留比例。稳定开发工具固定 Wrangler 4.100.0，并使用 .wrangler/stable-state 保存本地状态，保留旧 beta 测试状态而不覆盖。
 
 最终线上复验：PR 推送/PR 检查与 stage-a 合并提交的 GitHub CI 均成功，18 项测试通过；此前 SQL incomplete input 失败已由 cf6ecb5 修复，历史失败记录保留。线上真实链接复制、180px 二维码 PNG 下载、Escape 关闭及四种宽度通过，截图与分享样例已更新。
+
+## 公开站内 AI 搜索扩展
+
+新增 /search/ 与 POST /api/search。OpenAI 兼容接口由站主填写服务端 Secret/变量；仅检索公开内容，AI 引用限于候选稳定 ID，回答纯文本呈现，关键词回退，15 秒超时，D1 原子全站每日预算与每网络地址限流。新增 0004_search.sql 只建立独立额度表。未配置密钥时不请求模型。真实供应商 API 尚未配置，模型响应采用受控协议夹具测试；配置步骤见 ai-search.md。
+
+本轮本地验证：类型检查 0 errors/0 warnings，26 页构建与 Worker dry-run 成功，20 项 Playwright 全部通过（包括模型协议与公开搜索两项新增检查）。

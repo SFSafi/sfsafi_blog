@@ -1,5 +1,10 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
-const names = ['0001_engagement.sql', '0002_profile.sql', '0003_locations.sql'];
+const names = [
+  '0001_engagement.sql',
+  '0002_profile.sql',
+  '0003_locations.sql',
+  '0004_search.sql',
+];
 const migrations = names.map((name) => {
   const sql = readFileSync(
     new URL('../migrations/' + name, import.meta.url),
