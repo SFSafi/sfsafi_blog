@@ -1,10 +1,11 @@
+import { searchRoute, type SearchEnv } from './search';
 import { ensureInitialSchema } from './schema';
 import { readLimitedText, BodyTooLargeError } from './http';
 import type { D1Database } from '@cloudflare/workers-types';
 import { locationRoute } from './locations';
 import { profileRoute, type ProfileEnv } from './profile';
 import { repository } from '../src/lib/content';
-interface Env extends ProfileEnv {
+interface Env extends ProfileEnv, SearchEnv {
   DB?: D1Database;
   ASSETS: { fetch(request: Request): Promise<Response> };
 }
@@ -124,6 +125,8 @@ export default {
         return json({ error: '数据库初始化暂不可用，请稍后重试。' }, 503);
       }
     }
+    const searchResponse = await searchRoute(request, env);
+    if (searchResponse) return searchResponse;
     const locationResponse = await locationRoute(request, env);
     if (locationResponse) return locationResponse;
     const profileResponse = await profileRoute(request, env);

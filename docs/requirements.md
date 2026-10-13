@@ -247,3 +247,7 @@ id、storageKey、kind、mimeType、byteSize、width、height、duration（视�
 - 分享可复制稳定链接，或生成包含内容摘要、头像昵称、地点、稳定链接及二维码的图片。
 - 站主可通过浏览器编辑昵称、上传头像。此限定资料管理不等同完整内容 CMS。
 - 现有可访问地址 https://sfsafi-blog.jonce-z.workers.dev ，用户确认已连接 GitHub stage-a 分支自动部署。
+
+## 追加授权：公开站内 AI 搜索
+
+用户要求由站主填写模型 API，供读者搜索本站。实现 /search/ 与 POST /api/search；仅服务端保存密钥，公开内容检索、中文回答和原文引用；关键词回退、超时、预算及限流；不包含全网搜索或通用聊天。
