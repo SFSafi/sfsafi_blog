@@ -11,3 +11,5 @@ Vercel 也可用 Git 集成和 Astro 静态项目预览；同样需要网页账�
 生产域名、正式上线和付费操作均未执行。真实 CMS 接入后再确定平台、适配器、缓存、Webhook 与受保护草稿预览。无需站主本地安装工具。
 
 CI 每次 push/PR 执行 npm ci、astro check、astro build，并保存 dist 构建产物 7 天。CI 不自动正式发布；静态构建产物下载也不等同在线预览。
+
+仓库已有 main 和 stage-a，初始版本构建 CI 两次通过。默认分支仍为 stage-a；如需采用 main 为默认分支，请在 GitHub 仓库设置中更改，当前集成对该设置操作返回 HTTP 403。

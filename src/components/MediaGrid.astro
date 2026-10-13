@@ -36,6 +36,7 @@ const { media } = Astro.props as { media: Media[] };
             playsinline
             preload="none"
             poster={item.thumbnailKey}
+            style={`aspect-ratio: ${item.width} / ${item.height}`}
             aria-label={item.alt}
           >
             <source src={repository.mediaUrl(item)} type={item.mimeType} />
