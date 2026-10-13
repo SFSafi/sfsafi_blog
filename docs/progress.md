@@ -46,3 +46,5 @@ PR #1 已合并，Cloudflare production 构建成功；真实 D1 UUID 已绑定�
 新增 /search/ 与 POST /api/search。OpenAI 兼容接口由站主填写服务端 Secret/变量；仅检索公开内容，AI 引用限于候选稳定 ID，回答纯文本呈现，关键词回退，15 秒超时，D1 原子全站每日预算与每网络地址限流。新增 0004_search.sql 只建立独立额度表。未配置密钥时不请求模型。真实供应商 API 尚未配置，模型响应采用受控协议夹具测试；配置步骤见 ai-search.md。
 
 本轮本地验证：类型检查 0 errors/0 warnings，26 页构建与 Worker dry-run 成功，20 项 Playwright 全部通过（包括模型协议与公开搜索两项新增检查）。
+
+PR #2 已合入 stage-a，GitHub 推送/PR/main/stage-a 检查与 Cloudflare production 构建通过。真实线上 /api/search 返回 aiAvailable=false；搜索 Astro 能找到原文，关键词模式/稳定链接及四种宽度经真实远程响应复验通过。新数据库表自动建立，原统计仍可读。真实模型待站主配置三项变量后验收。手机导航间距随后调整，保证五个入口文字横排。

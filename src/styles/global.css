@@ -907,9 +907,10 @@
     padding-bottom: 10px;
   }
   .sidebar nav a {
-    padding: 7px 10px;
-    gap: 7px;
+    padding: 7px 4px;
+    gap: 4px;
     font-size: 14px;
+    white-space: nowrap;
   }
   .sidebar nav a > span:first-child {
     font-size: 16px;
