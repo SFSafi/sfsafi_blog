@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sfsafi-qq-bot",
+  "main": "bot/worker.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
+  "triggers": { "crons": ["* * * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sfsafi-engagement",
+      "database_id": "8713524f-f776-4dbc-8a9f-1b03414c6cf6",
+    },
+  ],
+}

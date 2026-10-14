@@ -22,7 +22,7 @@ export interface Post {
   kind: 'note' | 'article';
   title?: string;
   body: string;
-  bodyFormat: 'plain';
+  bodyFormat: 'plain' | 'markdown';
   excerpt?: string;
   status: 'draft' | 'published' | 'archived';
   visibility: 'public';
@@ -35,6 +35,7 @@ export interface Post {
   firstPublishedAt?: string;
   revision: number;
   canonicalPath: string;
+  sample?: boolean;
 }
 export interface Profile {
   name: string;

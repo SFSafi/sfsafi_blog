@@ -3,6 +3,7 @@ import { imageSize } from 'image-size';
 import { repository } from '../src/lib/content';
 import { verifyAccessToken, type AccessConfig } from './access';
 export interface ProfileEnv extends AccessConfig {
+  OWNER_EMAIL?: string;
   DB?: D1Database;
 }
 function result(data: unknown, status = 200) {
@@ -49,7 +50,12 @@ export async function requireAdmin(
   if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD)
     return result({ error: '管理员登录尚未配置。' }, 503);
   try {
-    await verifyAccessToken(token, env);
+    const email = await verifyAccessToken(token, env);
+    if (
+      env.OWNER_EMAIL &&
+      email.toLowerCase() !== env.OWNER_EMAIL.trim().toLowerCase()
+    )
+      return result({ error: '只有站主可以执行此操作。' }, 403);
   } catch {
     return result({ error: '登录已失效或无权访问。' }, 403);
   }

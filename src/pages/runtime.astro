@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+import PostCard from '../components/PostCard.astro';
+import { repository } from '../lib/content';
+const sample = (await repository.getPublished('hello-space'))!;
+const post = {
+  ...sample,
+  body: '',
+  title: undefined,
+  excerpt: '',
+  media: [],
+  tags: [],
+};
+---
+
+<Base title="页面模板">
+  <p>此页面是公开阅读页的服务端模板。</p>
+  <div hidden>
+    <PostCard post={post} />
+  </div>
+</Base>
+<script>
+  import '../lib/comments-client';
+</script>

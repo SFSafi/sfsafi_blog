@@ -1,0 +1,83 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="写文">
+  <section class="page-heading">
+    <div class="eyebrow">YOUR WORDS, YOUR SPACE</div>
+    <h1>
+      写下<span>这一刻。</span>
+    </h1>
+    <p>只有站主可以保存、编辑和发布。</p>
+    <a href="/admin/posts/">管理文章 →</a>
+  </section>
+  <section class="editor-panel">
+    <p id="editor-status" role="status">
+      正在验证站主身份…
+    </p>
+    <form id="editor-form">
+      <fieldset disabled>
+        <label>
+          类型
+          <select name="kind">
+            <option value="note">动态</option>
+            <option value="article">文章</option>
+          </select>
+        </label>
+        <label>
+          标题
+          <input name="title" maxlength="120" />
+        </label>
+        <label>
+          正文（Markdown）
+          <textarea name="body" rows="16" maxlength="20000" required></textarea>
+        </label>
+        <label>
+          摘要<textarea name="excerpt" rows="2" maxlength="300"></textarea>
+        </label>
+        <label>
+          标签（逗号分隔，最多 8 个）
+          <input name="tags" />
+        </label>
+        <label>
+          手动地点
+          <input name="location" maxlength="80" />
+        </label>
+        <label class="editor-check">
+          <input name="pinned" type="checkbox" />
+          置顶
+        </label>
+        <div class="editor-actions">
+          <button type="submit">保存</button>
+          <button type="button" id="editor-preview">
+            预览
+          </button>
+          <button type="button" id="editor-publish" disabled>
+            发布
+          </button>
+          <button type="button" id="editor-withdraw" hidden>
+            撤回为草稿
+          </button>
+          <button type="button" id="editor-archive" hidden>
+            归档
+          </button>
+          <a id="editor-live-link" hidden target="_blank" rel="noopener">
+            查看原文 ↗
+          </a>
+        </div>
+        <p>
+          新内容先保存草稿；已发布内容保存后会立即更新。正文媒体上传暂未接通，不会把本地文件预览当作已上传。
+        </p>
+      </fieldset>
+    </form>
+    <section
+      id="editor-preview-panel"
+      class="post-body"
+      aria-label="正文预览"
+      hidden
+    ></section>
+  </section>
+  <script>
+    import '../../lib/editor-client';
+  </script>
+</Base>

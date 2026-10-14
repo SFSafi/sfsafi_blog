@@ -1,0 +1,178 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="评论审核">
+  <section class="page-heading">
+    <h1>
+      管理<span>评论。</span>
+    </h1>
+    <p>只有站主可以审核和隐藏评论。</p>
+    <a href="/admin/posts/">返回文章管理</a>
+  </section>
+  <section class="editor-panel">
+    <label>
+      状态
+      <select id="comments-filter">
+        <option value="pending">待审核</option>
+        <option value="approved">已通过</option>
+        <option value="hidden">已隐藏</option>
+        <option value="deleted">已删除（保留记录）</option>
+        <option value="all">全部</option>
+      </select>
+    </label>
+    <p id="moderation-status" role="status">
+      正在验证站主身份…
+    </p>
+    <div id="moderation-list"></div>
+    <button id="moderation-more" hidden>
+      下一页
+    </button>
+  </section>
+  <script>
+    const filter =
+        document.querySelector<HTMLSelectElement>('#comments-filter')!,
+      status = document.querySelector<HTMLElement>('#moderation-status')!,
+      list = document.querySelector<HTMLElement>('#moderation-list')!,
+      more = document.querySelector<HTMLButtonElement>('#moderation-more')!;
+    let page = 1,
+      busy = false;
+    async function load(reset = false) {
+      if (busy) return;
+      busy = true;
+      more.disabled = true;
+      filter.disabled = true;
+      if (reset) {
+        page = 1;
+        list.replaceChildren();
+      }
+      try {
+        const response = await fetch(
+            '/api/admin/comments?status=' + filter.value + '&page=' + page,
+            { signal: AbortSignal.timeout(10000) },
+          ),
+          data = await response.json();
+        if (!response.ok) throw Error(data.error);
+        for (const c of data.items) {
+          const item = document.createElement('article'),
+            name = document.createElement('strong'),
+            body = document.createElement('p'),
+            link = document.createElement('a');
+          item.className = 'comment-item';
+          name.textContent = c.nickname + ' · ' + c.status;
+          body.textContent = c.body;
+          link.href = '/posts/' + encodeURIComponent(c.post_id) + '/';
+          link.textContent = '查看关联内容';
+          item.append(name, body, link);
+          for (const [state, label] of [
+            ['approved', '通过'],
+            ['hidden', '隐藏'],
+            ['deleted', '删除'],
+          ]) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = label;
+            button.addEventListener('click', async () => {
+              if (busy) return;
+              if (
+                state === 'deleted' &&
+                !confirm('删除后该评论不再展示；保留管理记录。确认删除？')
+              )
+                return;
+              busy = true;
+              button.disabled = true;
+              try {
+                const r = await fetch('/api/admin/comments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      id: c.id,
+                      revision: c.revision,
+                      status: state,
+                    }),
+                    signal: AbortSignal.timeout(10000),
+                  }),
+                  d = await r.json();
+                if (!r.ok) throw Error(d.error);
+                status.textContent = '评论状态已更新。';
+                item.remove();
+              } catch (error) {
+                status.textContent =
+                  error instanceof Error ? error.message : '审核失败。';
+              } finally {
+                busy = false;
+                button.disabled = false;
+              }
+            });
+            item.append(button);
+          }
+          if (c.status === 'approved') {
+            const reply = document.createElement('textarea'),
+              send = document.createElement('button');
+            reply.rows = 3;
+            reply.maxLength = 1000;
+            reply.setAttribute('aria-label', '站主回复 ' + c.nickname);
+            send.type = 'button';
+            send.textContent = '站主回复';
+            const clientId = crypto.randomUUID();
+            send.addEventListener('click', async () => {
+              if (busy) return;
+              if (!reply.value.trim()) {
+                status.textContent = '请填写回复。';
+                return;
+              }
+              busy = true;
+              send.disabled = true;
+              reply.disabled = true;
+              try {
+                const r = await fetch('/api/admin/comments/reply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      parentId: c.parent_id || c.id,
+                      body: reply.value,
+                      clientId,
+                    }),
+                    signal: AbortSignal.timeout(10000),
+                  }),
+                  data = await r.json();
+                if (!r.ok) throw Error(data.error);
+                status.textContent = '站主回复已发布。';
+                send.disabled = true;
+                reply.readOnly = true;
+              } catch (error) {
+                status.textContent =
+                  error instanceof Error ? error.message : '回复失败。';
+                send.disabled = false;
+              } finally {
+                busy = false;
+                reply.disabled = false;
+              }
+            });
+            item.append(reply, send);
+          }
+          list.append(item);
+        }
+        more.hidden = !data.hasMore;
+        status.textContent = list.children.length
+          ? '已载入评论。'
+          : '该状态下暂无评论。';
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : '读取失败。';
+      } finally {
+        busy = false;
+        filter.disabled = false;
+        more.disabled = false;
+      }
+    }
+    filter.addEventListener('change', () => {
+      void load(true);
+    });
+    more.addEventListener('click', () => {
+      page++;
+      void load();
+    });
+    void load();
+  </script>
+</Base>
