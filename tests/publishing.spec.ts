@@ -8,7 +8,7 @@ import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve, extname } from 'node:path';
 import { tmpdir } from 'node:os';
 const base = 'https://space.test';
-async function fixture() {
+async function fixture(enableMail = false) {
   const pair = await generateKeyPair('RS256', { extractable: true }),
     jwk = await exportJWK(pair.publicKey);
   jwk.kid = 'writing-test';
@@ -54,17 +54,44 @@ async function fixture() {
       },
     });
   };
+  const mail = { messages: [] as any[], mode: 'ok' };
+  const outboundService = async (request: any) => {
+    if (new URL(request.url).hostname === 'writer-test.cloudflareaccess.com')
+      return Response.json({ keys: [jwk] });
+    expect(request.url).toBe('https://api.resend.com/emails');
+    expect(request.headers.get('Authorization')).toBe(
+      'Bearer fixture-resend-key',
+    );
+    const data = await request.json();
+    mail.messages.push({
+      ...data,
+      key: request.headers.get('Idempotency-Key'),
+    });
+    if (mail.mode === 'failure')
+      return Response.json({ error: 'fixture' }, { status: 503 });
+    return Response.json(
+      mail.mode === 'missing' ? {} : { id: 'mail-' + mail.messages.length },
+    );
+  };
   const options = {
     script: readFileSync('/tmp/sfsafi-worker-bundle/index.js', 'utf8'),
     modules: true,
     compatibilityDate: '2026-06-01',
     d1Databases: { DB: 'writing' },
     d1Persist: dir,
-    fetchMock: mock,
+    ...(enableMail ? { outboundService } : { fetchMock: mock }),
     bindings: {
       ACCESS_TEAM_DOMAIN: 'writer-test.cloudflareaccess.com',
       ACCESS_AUD: 'writing-aud',
       OWNER_EMAIL: 'owner@example.com',
+      ...(enableMail
+        ? {
+            RESEND_API_KEY: 'fixture-resend-key',
+            EMAIL_FROM: 'notify@space.test',
+            SITE_URL: base,
+            EMAIL_TOKEN_SECRET: 'fixture-only-' + 'x'.repeat(40),
+          }
+        : {}),
     },
     serviceBindings: { ASSETS: assets },
   };
@@ -91,6 +118,7 @@ async function fixture() {
       return mf;
     },
     dispatch,
+    mail,
     token,
     other,
     options,
@@ -104,6 +132,283 @@ async function fixture() {
     },
   };
 }
+test('评论邮件：私有邮箱、确认订阅、公开回复、持久去重与退订', async () => {
+  const f = await fixture(true);
+  try {
+    const session = await f.dispatch(
+      '/api/engagement?ids=hello-space',
+      undefined,
+      false,
+    );
+    const cookie = session.headers.get('set-cookie')!.split(';')[0];
+    const id = crypto.randomUUID();
+    const body = {
+      postId: 'hello-space',
+      nickname: '邮箱读者',
+      body: '直接显示',
+      email: 'Reader@Example.com',
+      clientId: id,
+    };
+    const extra = { Cookie: cookie, 'CF-Connecting-IP': '8.8.8.8' };
+    const created = (await (
+      await f.dispatch('/api/comments', body, false, extra)
+    ).json()) as any;
+    expect(created.status).toBe('approved');
+    expect(created.emailNotification).toBe('verification_required');
+    const visible = await (
+      await f.dispatch('/api/comments?postId=hello-space', undefined, false)
+    ).text();
+    expect(visible).toContain('直接显示');
+    expect(visible).not.toContain('reader@example.com');
+    expect(
+      await (await f.dispatch('/api/admin/comments')).text(),
+    ).not.toContain('reader@example.com');
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(1);
+    expect(f.mail.messages[0].to).toEqual(['reader@example.com']);
+    const verify = f.mail.messages[0].text.match(
+      /https:\/\/space\.test\/api\/comment-email\/verify\?token=[^\s]+/,
+    )[0];
+    const verifyPath = new URL(verify).pathname + new URL(verify).search;
+    const db = await f.mf.getD1Database('DB');
+    expect((await f.dispatch(verifyPath, undefined, false)).status).toBe(200);
+    expect(
+      (
+        (await db
+          .prepare(
+            'SELECT confirmed_at FROM comment_email_contacts WHERE comment_id=?',
+          )
+          .bind(id)
+          .first()) as any
+      ).confirmed_at,
+    ).toBeNull();
+    expect(
+      (await f.dispatch(verifyPath, {}, false, { Origin: 'https://evil.test' }))
+        .status,
+    ).toBe(403);
+    expect((await f.dispatch(verifyPath, {}, false)).status).toBe(200);
+    const replyId = crypto.randomUUID();
+    const response = await f.dispatch('/api/admin/comments/reply', {
+      parentId: id,
+      body: '站主回复测试',
+      clientId: replyId,
+    });
+    expect(response.status).toBe(200);
+    await f.dispatch('/api/admin/comments/reply', {
+      parentId: id,
+      body: '站主回复测试',
+      clientId: replyId,
+    });
+    await f.restart();
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(2);
+    await f.dispatch(
+      '/api/comments',
+      {
+        postId: 'hello-space',
+        nickname: '自己',
+        body: '自己的回复',
+        parentId: id,
+        clientId: crypto.randomUUID(),
+      },
+      false,
+      extra,
+    );
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(2);
+    const secondSession = await f.dispatch(
+      '/api/engagement?ids=hello-space',
+      undefined,
+      false,
+    );
+    const secondCookie = secondSession.headers.get('set-cookie')!.split(';')[0];
+    expect(
+      (
+        await f.dispatch(
+          '/api/comments',
+          {
+            postId: 'hello-space',
+            nickname: '其他读者',
+            body: '其他读者回复',
+            parentId: id,
+            clientId: crypto.randomUUID(),
+          },
+          false,
+          { Cookie: secondCookie, 'CF-Connecting-IP': '9.9.9.9' },
+        )
+      ).status,
+    ).toBe(200);
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(3);
+    expect(f.mail.messages[2].text).toContain('其他读者回复');
+    expect(f.mail.messages[1].text).toContain('站主回复测试');
+    expect(f.mail.messages[1].text).toContain('#comment-' + replyId);
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(3);
+    const unsubscribe = f.mail.messages[1].text.match(
+      /https:\/\/space\.test\/api\/comment-email\/unsubscribe\?token=[^\s]+/,
+    )[0];
+    const path = new URL(unsubscribe).pathname + new URL(unsubscribe).search;
+    expect((await f.dispatch(path, undefined, false)).status).toBe(200);
+    expect((await f.dispatch(path, {}, false)).status).toBe(200);
+    const restartedDb = await f.mf.getD1Database('DB');
+    expect(
+      (
+        (await restartedDb
+          .prepare(
+            'SELECT email FROM comment_email_contacts WHERE comment_id=?',
+          )
+          .bind(id)
+          .first()) as any
+      ).email,
+    ).toBe('');
+    await f.dispatch('/api/admin/comments/reply', {
+      parentId: id,
+      body: '退订后回复',
+      clientId: crypto.randomUUID(),
+    });
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(3);
+    expect((await f.dispatch(verifyPath, {}, false)).status).toBe(410);
+  } finally {
+    await f.close();
+  }
+});
+
+test('评论邮件：未确认不发送回复、删除撤回隔离、服务失败不伪装成功', async () => {
+  const f = await fixture(true);
+  try {
+    const session = await f.dispatch(
+      '/api/engagement?ids=hello-space',
+      undefined,
+      false,
+    );
+    const cookie = session.headers.get('set-cookie')!.split(';')[0];
+    const id = crypto.randomUUID();
+    const extra = { Cookie: cookie, 'CF-Connecting-IP': '7.7.7.7' };
+    expect(
+      (
+        await f.dispatch(
+          '/api/comments',
+          {
+            postId: 'hello-space',
+            nickname: '访客',
+            body: '邮箱错误',
+            email: 'bad\r\nBcc:a@b.com',
+            clientId: crypto.randomUUID(),
+          },
+          false,
+          extra,
+        )
+      ).status,
+    ).toBe(400);
+    await f.dispatch(
+      '/api/comments',
+      {
+        postId: 'hello-space',
+        nickname: '访客',
+        body: '邮件测试',
+        email: 'reader@example.com',
+        clientId: id,
+      },
+      false,
+      extra,
+    );
+    await f.dispatch('/api/admin/comments/reply', {
+      parentId: id,
+      body: '验证前回复',
+      clientId: crypto.randomUUID(),
+    });
+    f.mail.mode = 'missing';
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(1);
+    const db = await f.mf.getD1Database('DB');
+    expect(
+      (
+        (await db
+          .prepare("SELECT status FROM comment_mail WHERE kind='verify'")
+          .first()) as any
+      ).status,
+    ).toBe('uncertain');
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(1);
+    expect(
+      (
+        await f.dispatch(
+          '/api/admin/comments',
+          { id, revision: 1, status: 'deleted' },
+          f.other,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await f.dispatch('/api/admin/comments', {
+          id,
+          revision: 1,
+          status: 'deleted',
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        (await db
+          .prepare(
+            'SELECT email FROM comment_email_contacts WHERE comment_id=?',
+          )
+          .bind(id)
+          .first()) as any
+      ).email,
+    ).toBe('');
+    expect(
+      (
+        (await (
+          await f.dispatch('/api/comments?postId=hello-space', undefined, false)
+        ).json()) as any
+      ).items,
+    ).toHaveLength(0);
+    expect(
+      (
+        (await db
+          .prepare("SELECT status FROM comment_mail WHERE kind='reply'")
+          .first()) as any
+      ).status,
+    ).toBe('canceled');
+    const newId = crypto.randomUUID();
+    await f.dispatch(
+      '/api/comments',
+      {
+        postId: 'hello-space',
+        nickname: '访客',
+        body: '额度测试',
+        email: 'second@example.com',
+        clientId: newId,
+      },
+      false,
+      extra,
+    );
+    const day = Math.floor((Date.now() / 1000 + 28800) / 86400);
+    await db
+      .prepare(
+        "UPDATE comment_limits SET window=?,count=100 WHERE bucket='mail-global'",
+      )
+      .bind(day)
+      .run();
+    f.mail.mode = 'ok';
+    await (await f.mf.getWorker()).scheduled();
+    expect(f.mail.messages).toHaveLength(1);
+    expect(
+      (
+        (await db
+          .prepare('SELECT status,next_at FROM comment_mail WHERE contact_id=?')
+          .bind(newId)
+          .first()) as any
+      ).status,
+    ).toBe('queued');
+  } finally {
+    await f.close();
+  }
+});
 test('D1 写文：唯一站主、草稿隔离、冲突、即时页面/搜索、撤回和持久发布事件', async () => {
   const f = await fixture();
   try {
@@ -237,7 +542,7 @@ test('D1 写文：唯一站主、草稿隔离、冲突、即时页面/搜索、�
     await f.close();
   }
 });
-test('真实本地 D1 浏览器写文、预览、发布及评论审核；读者不能写文', async ({
+test('真实本地 D1 浏览器写文、预览、发布及评论管理；读者不能写文', async ({
   browser,
 }) => {
   const f = await fixture();
@@ -302,11 +607,13 @@ test('真实本地 D1 浏览器写文、预览、发布及评论审核；读者�
       .fill('<img src=x onerror=alert(1)> hello');
     await read.getByRole('button', { name: '提交评论', exact: true }).click();
     await expect(read.locator('[data-comments-status]')).toHaveText(
-      '评论已提交，审核通过后会显示。',
+      '评论已发布。',
     );
-    expect(
-      await read.locator('[data-comments-list]').textContent(),
-    ).not.toContain('onerror');
+    expect(await read.locator('[data-comments-list]').textContent()).toContain(
+      'onerror',
+    );
+    await expect(read.locator('[data-comments-list] img')).toHaveCount(0);
+    await expect(read.getByLabel('邮箱（选填）')).toBeDisabled();
     for (const width of [360, 390, 768, 1440]) {
       await read.setViewportSize({ width, height: 900 });
       expect(
@@ -317,11 +624,6 @@ test('真实本地 D1 浏览器写文、预览、发布及评论审核；读者�
     }
     await page.goto(base + '/admin/comments/');
     await expect(page.locator('#moderation-list .comment-item')).toHaveCount(1);
-    await page.getByRole('button', { name: '通过', exact: true }).click();
-    await expect(page.locator('#moderation-status')).toHaveText(
-      '评论状态已更新。',
-    );
-    await page.locator('#comments-filter').selectOption('approved');
     await page.getByLabel('站主回复 读者').fill('感谢阅读。');
     await page.getByRole('button', { name: '站主回复', exact: true }).click();
     await expect(page.locator('#moderation-status')).toHaveText(
@@ -354,7 +656,7 @@ test('真实本地 D1 浏览器写文、预览、发布及评论审核；读者�
     await f.close();
   }
 });
-test('评论 API：幂等提交、审核/父评论隔离、限流及跨站拒绝', async () => {
+test('评论 API：幂等提交、直接公开/父评论隔离、限流及跨站拒绝', async () => {
   const f = await fixture();
   try {
     const session = await f.dispatch(
@@ -383,7 +685,7 @@ test('评论 API：幂等提交、审核/父评论隔离、限流及跨站拒绝
           await f.dispatch('/api/comments?postId=hello-space', undefined, false)
         ).json()) as any
       ).items,
-    ).toHaveLength(0);
+    ).toHaveLength(1);
     expect(
       (
         await f.dispatch(

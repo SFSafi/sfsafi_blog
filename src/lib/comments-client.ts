@@ -17,7 +17,50 @@ for (const section of document.querySelectorAll<HTMLElement>(
     busy = false,
     attempted = false;
   const nickname = form.elements.namedItem('nickname') as HTMLInputElement,
-    body = form.elements.namedItem('body') as HTMLTextAreaElement;
+    body = form.elements.namedItem('body') as HTMLTextAreaElement,
+    email = form.elements.namedItem('email') as HTMLInputElement,
+    emailHint = section.querySelector<HTMLElement>(
+      '[data-comment-email-hint]',
+    )!;
+  let emailAvailable = false;
+  function appendComment(comment: any) {
+    if (document.getElementById('comment-' + comment.id)) return;
+    const article = document.createElement('article'),
+      head = document.createElement('strong'),
+      text = document.createElement('p'),
+      date = document.createElement('small');
+    article.className = 'comment-item';
+    article.id = 'comment-' + comment.id;
+    head.textContent =
+      comment.nickname + (comment.owner ? ' · 站主' : ' · 访客');
+    text.textContent = comment.body;
+    date.textContent = new Date(comment.created_at).toLocaleString('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+    });
+    article.append(head, date);
+    if (comment.parent_id) {
+      const parent = document.createElement('a');
+      parent.href = '#comment-' + comment.parent_id;
+      parent.textContent = '回复上方评论';
+      article.append(parent);
+    }
+    article.append(text);
+    if (!comment.parent_id) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = '回复';
+      button.addEventListener('click', () => {
+        parentId = comment.id;
+        reply.textContent = '回复 ' + comment.nickname;
+        reply.hidden = false;
+        cancel.hidden = false;
+        clientId = crypto.randomUUID();
+        body.focus();
+      });
+      article.append(button);
+    }
+    list.append(article);
+  }
   async function load() {
     more.disabled = true;
     try {
@@ -27,46 +70,17 @@ for (const section of document.querySelectorAll<HTMLElement>(
       );
       const data = await response.json();
       if (!response.ok) throw Error(data.error || '评论读取失败。');
-      for (const comment of data.items) {
-        const article = document.createElement('article'),
-          head = document.createElement('strong'),
-          text = document.createElement('p'),
-          date = document.createElement('small');
-        article.className = 'comment-item';
-        article.id = 'comment-' + comment.id;
-        head.textContent =
-          comment.nickname + (comment.owner ? ' · 站主' : ' · 访客');
-        text.textContent = comment.body;
-        date.textContent = new Date(comment.created_at).toLocaleString('zh-CN');
-        article.append(head, date);
-        if (comment.parent_id) {
-          const parent = document.createElement('a');
-          parent.href = '#comment-' + comment.parent_id;
-          parent.textContent = '回复上方评论';
-          article.append(parent);
-        }
-        article.append(text);
-        if (!comment.parent_id) {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.textContent = '回复';
-          button.addEventListener('click', () => {
-            parentId = comment.id;
-            reply.textContent = '回复 ' + comment.nickname;
-            reply.hidden = false;
-            cancel.hidden = false;
-            clientId = crypto.randomUUID();
-            body.focus();
-          });
-          article.append(button);
-        }
-        list.append(article);
-      }
+      emailAvailable = data.emailNotificationsAvailable === true;
+      email.disabled = !emailAvailable || busy;
+      emailHint.textContent = emailAvailable
+        ? '邮箱仅用于回复通知，不公开。提交后需确认订阅，可随时退订。'
+        : '邮箱通知尚未启用，可以直接发表评论。';
+      for (const comment of data.items) appendComment(comment);
       more.hidden = !data.hasMore;
       page++;
       status.textContent = list.children.length
-        ? '仅展示已审核评论。'
-        : '还没有已审核评论。';
+        ? '评论提交后直接显示。'
+        : '还没有评论。';
     } catch (error) {
       status.textContent =
         error instanceof Error ? error.message : '评论读取失败，请稍后重试。';
@@ -96,6 +110,7 @@ for (const section of document.querySelectorAll<HTMLElement>(
     attempted = true;
     nickname.disabled = true;
     body.disabled = true;
+    email.disabled = true;
     cancel.disabled = true;
     submit.disabled = true;
     status.textContent = '正在提交…';
@@ -109,18 +124,29 @@ for (const section of document.querySelectorAll<HTMLElement>(
           body: body.value,
           parentId,
           clientId,
+          email: emailAvailable ? email.value : undefined,
         }),
         signal: AbortSignal.timeout(10000),
       });
       const data = await response.json();
       if (!response.ok) throw Error(data.error || '提交失败。');
+      if (data.item) appendComment(data.item);
       body.value = '';
+      email.value = '';
       attempted = false;
       parentId = null;
       reply.hidden = true;
       cancel.hidden = true;
       clientId = crypto.randomUUID();
-      status.textContent = '评论已提交，审核通过后会显示。';
+      status.textContent = ['approved', 'pending'].includes(data.status)
+        ? '评论已发布。'
+        : '该评论已被站主管理，不再公开。';
+      if (data.emailNotification === 'verification_required')
+        status.textContent += ' 确认邮件已加入发送队列，请在邮件中确认订阅。';
+      if (data.emailNotification === 'enabled')
+        status.textContent += ' 回复邮件通知已启用。';
+      if (['unavailable', 'limited'].includes(data.emailNotification))
+        status.textContent += ' 本次邮箱通知未启用，评论已正常发布。';
     } catch (error) {
       status.textContent =
         error instanceof Error ? error.message : '提交失败，请重试。';
@@ -128,6 +154,7 @@ for (const section of document.querySelectorAll<HTMLElement>(
       busy = false;
       nickname.disabled = false;
       body.disabled = false;
+      email.disabled = !emailAvailable;
       cancel.disabled = false;
       submit.disabled = false;
     }

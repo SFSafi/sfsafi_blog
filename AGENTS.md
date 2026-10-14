@@ -24,3 +24,5 @@
 写文/审核必须 requireOwner，检查真实 Access JWT 与 OWNER_EMAIL。用户已提供邮箱并确认 QQ 群/个人均需；R2 未建立，明确要求先做其他功能，正文媒体上传暂缓。所有文字通过 D1 ContentRepository 读取，部署保留现有 D1 数据；Bot 为独立 wrangler.bot.jsonc，不用网站配置部署。CI 必须同时 build:worker、build:bot，再运行全套测试；QQ 模拟回执不等于真实投递。
 
 FFmpeg 视频转码已获授权，用户确认暂时没有服务器，先完成代码和部署说明。独立 transcoder/ 服务及站主 /admin/media/ 已实现，必须保持服务密钥私有、真实编码与私有预览；R2、正文绑定与公开媒体发布仍未接通。媒体修改需额外运行 Python/FFmpeg 真实编码检查（见 docs/ffmpeg.md），不把 Codex 临时文件或转码模拟结果称为生产上传。
+
+用户已变更评论要求：评论直接公开，无需审核，仅站主可删除；新增可选邮箱与回复通知。历史 pending 按公开处理，不修改既有隐藏/删除记录；邮箱不得进入公开响应、HTML 或客户端持久化。邮件需确认订阅，可退订，删除取消待发通知；服务凭据仅 Worker Secret，模拟接口不等于真实送达。

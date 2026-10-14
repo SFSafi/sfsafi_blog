@@ -1,6 +1,6 @@
 # SFSafi 的个人空间
 
-Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍含样例。新增 D1 文字写文、草稿/发布/撤回与评论审核；管理员需配置 Cloudflare Access，写文和审核再次核对唯一站主邮箱。独立 QQ Bot 已准备部署，但尚无真实账号凭据。新增 /search/ 站内搜索支持关键词和由站主配置的 OpenAI 兼容 AI 接口，配置见 docs/ai-search.md。
+Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍含样例。新增 D1 文字写文、草稿/发布/撤回与评论直接公开/站主管理；管理员需配置 Cloudflare Access，写文和评论管理再次核对唯一站主邮箱。独立 QQ Bot 已准备部署，但尚无真实账号凭据。新增 /search/ 站内搜索支持关键词和由站主配置的 OpenAI 兼容 AI 接口，配置见 docs/ai-search.md。
 
 ## 云端开发
 
@@ -39,3 +39,5 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/sfsafi-browsers npm run test:e2e
 Bot 单独打包：npm run build:bot。当前总检查需先 build:worker 与 build:bot，再运行 test:e2e；Bot 不用博客的部署配置。
 
 视频转码：独立 FFmpeg 服务与站主 `/admin/media/` 页面已实现，见 [部署说明](docs/ffmpeg.md)。真实服务器与 R2 尚未接通，不能直接发布正文视频。服务使用 Python 3.11+、FFmpeg/ffprobe；真实编码检查命令：`python3 -m unittest discover -s transcoder -p 'test_*.py' -v`。
+
+评论回复邮件：可选邮箱、确认订阅、退订与私有持久队列已实现，发信配置见 [comment-email.md](docs/comment-email.md)。未配置发信服务时评论仍可立即发布。

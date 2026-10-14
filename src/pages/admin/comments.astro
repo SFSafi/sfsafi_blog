@@ -2,20 +2,19 @@
 import Base from '../../layouts/Base.astro';
 ---
 
-<Base title="评论审核">
+<Base title="评论管理">
   <section class="page-heading">
     <h1>
       管理<span>评论。</span>
     </h1>
-    <p>只有站主可以审核和隐藏评论。</p>
+    <p>评论直接公开；只有站主可以删除评论和以站主身份回复。</p>
     <a href="/admin/posts/">返回文章管理</a>
   </section>
   <section class="editor-panel">
     <label>
       状态
       <select id="comments-filter">
-        <option value="pending">待审核</option>
-        <option value="approved">已通过</option>
+        <option value="approved">已公开</option>
         <option value="hidden">已隐藏</option>
         <option value="deleted">已删除（保留记录）</option>
         <option value="all">全部</option>
@@ -24,6 +23,7 @@ import Base from '../../layouts/Base.astro';
     <p id="moderation-status" role="status">
       正在验证站主身份…
     </p>
+    <p id="comment-mail-status"></p>
     <div id="moderation-list"></div>
     <button id="moderation-more" hidden>
       下一页
@@ -53,22 +53,49 @@ import Base from '../../layouts/Base.astro';
           ),
           data = await response.json();
         if (!response.ok) throw Error(data.error);
+        const mailStatus = document.querySelector<HTMLElement>(
+          '#comment-mail-status',
+        )!;
+        const names: Record<string, string> = {
+          queued: '待发送',
+          sending: '发送中',
+          sent: '服务已接收',
+          failed: '发送失败',
+          uncertain: '结果不确定',
+          canceled: '已取消',
+        };
+        mailStatus.textContent =
+          (data.emailNotificationsAvailable
+            ? '邮件通知已配置。'
+            : '邮件通知尚未配置。') +
+          (data.mailSummary?.length
+            ? ' 队列：' +
+              data.mailSummary
+                .map(
+                  (s: { status: string; count: number }) =>
+                    `${names[s.status] || s.status} ${s.count}`,
+                )
+                .join('，')
+            : '');
         for (const c of data.items) {
           const item = document.createElement('article'),
             name = document.createElement('strong'),
             body = document.createElement('p'),
             link = document.createElement('a');
           item.className = 'comment-item';
-          name.textContent = c.nickname + ' · ' + c.status;
+          name.textContent =
+            c.nickname +
+            ' · ' +
+            (['pending', 'approved'].includes(c.status)
+              ? '已公开'
+              : c.status === 'deleted'
+                ? '已删除'
+                : '已隐藏');
           body.textContent = c.body;
           link.href = '/posts/' + encodeURIComponent(c.post_id) + '/';
           link.textContent = '查看关联内容';
           item.append(name, body, link);
-          for (const [state, label] of [
-            ['approved', '通过'],
-            ['hidden', '隐藏'],
-            ['deleted', '删除'],
-          ]) {
+          for (const [state, label] of [['deleted', '删除']]) {
             const button = document.createElement('button');
             button.type = 'button';
             button.textContent = label;
@@ -98,7 +125,7 @@ import Base from '../../layouts/Base.astro';
                 item.remove();
               } catch (error) {
                 status.textContent =
-                  error instanceof Error ? error.message : '审核失败。';
+                  error instanceof Error ? error.message : '操作失败。';
               } finally {
                 busy = false;
                 button.disabled = false;
@@ -106,7 +133,7 @@ import Base from '../../layouts/Base.astro';
             });
             item.append(button);
           }
-          if (c.status === 'approved') {
+          if (['approved', 'pending'].includes(c.status)) {
             const reply = document.createElement('textarea'),
               send = document.createElement('button');
             reply.rows = 3;

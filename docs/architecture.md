@@ -53,7 +53,7 @@ Wrangler 固定 4.100.0（配套稳定 Miniflare 4），避免当前最新 CLI �
 
 限定单人编辑方案比较与选择见 writing.md。contents 保存实际正文，Worker 使用 D1 ContentRepository 渲染公开首页/分页/详情/标签，模板只保存布局与脚本，不保存私有正文。公开读取只允许 published/public，发布不等待静态重建，撤回/归档后不通过静态详情别名绕过。样例首次 INSERT OR IGNORE 导入，保留所有原统计/资料。0005/0006 仅新增内容、发布事件与评论表。
 
-站主 API 验证 Access 签名和 OWNER_EMAIL，客户端禁用按钮不是权限边界。Markdown 原始 HTML 与不安全链接被拒绝执行，远程 Markdown 图片暂不渲染。评论待审核、一级回复，唯一站主审核/回复；昵称不等于认证。
+站主 API 验证 Access 签名和 OWNER_EMAIL，客户端禁用按钮不是权限边界。Markdown 原始 HTML 与不安全链接被拒绝执行，远程 Markdown 图片暂不渲染。评论直接公开、一级回复，唯一站主管理/删除；昵称不等于认证。可选邮箱与私有回复通知见 comment-email.md。
 
 网站 publication_outbox 通过签名接口通知独立 Bot Worker，qq_* 表持久保存订阅/投递；两服务复用已有 D1，但代码/部署配置独立。QQ 官方 HTTP Webhook 使用真实 Ed25519 校验，Node crypto 在 nodejs_compat 下本地 Workerd 验证通过。真实平台账号授权与服务部署仍未完成，见 qq-bot.md。R2 与正文媒体上传按用户指示暂缓。
 

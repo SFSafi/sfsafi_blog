@@ -1,3 +1,8 @@
+import {
+  commentEmailRoute,
+  deliverCommentMail,
+  type CommentMailEnv,
+} from './comment-mail';
 import { qqAdminRoute } from './qq-admin';
 import { mediaRoute, type MediaEnv } from './media';
 import {
@@ -18,7 +23,13 @@ import { postsRoute } from './posts';
 import { pageRoute } from './render';
 import type { OwnerEnv } from './owner';
 interface Env
-  extends ProfileEnv, SearchEnv, OwnerEnv, NotificationEnv, MediaEnv {
+  extends
+    ProfileEnv,
+    SearchEnv,
+    OwnerEnv,
+    NotificationEnv,
+    MediaEnv,
+    CommentMailEnv {
   DB?: D1Database;
   ASSETS: { fetch(request: Request): Promise<Response> };
 }
@@ -60,6 +71,7 @@ export default {
     ctx: { waitUntil(promise: Promise<unknown>): void },
   ) {
     ctx.waitUntil(deliverUpdates(env));
+    ctx.waitUntil(deliverCommentMail(env));
   },
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -130,6 +142,8 @@ export default {
         });
       }
     }
+    const emailResponse = await commentEmailRoute(request, env);
+    if (emailResponse) return emailResponse;
     const qqResponse = await qqAdminRoute(request, env);
     if (qqResponse) return qqResponse;
     const notificationResponse = await notificationRoute(request, env);

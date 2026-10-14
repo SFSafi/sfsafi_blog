@@ -8,7 +8,7 @@
 
 站主已提供数据库 UUID，已写入 wrangler.jsonc 的 DB 绑定：8713524f-f776-4dbc-8a9f-1b03414c6cf6。
 
-无需复制 SQL 到网页：Worker 首次 API 请求会自动建立初始表与触发器，并用 space_schema 记录版本。初始化只接受六个纯新增迁移中的 CREATE TABLE/TRIGGER IF NOT EXISTS；每个版本在事务中提交，不删除/替换现有数据，可安全重复。构建时 npm prepare 从迁移文件生成忽略的 Worker schema 模块，不把测试数据库提交到 Git。
+无需复制 SQL 到网页：Worker 首次 API 请求会自动建立初始表与触发器，并用 space_schema 记录版本。初始化只接受七个纯新增迁移中的 CREATE TABLE/TRIGGER IF NOT EXISTS；每个版本在事务中提交，不删除/替换现有数据，可安全重复。构建时 npm prepare 从迁移文件生成忽略的 Worker schema 模块，不把测试数据库提交到 Git。
 
 Workers Git 自动构建使用 npm run build，部署命令使用 npx wrangler deploy；部署读取 wrangler.jsonc，DB 指向该 D1，ASSETS 指向 dist。如果当前部署命令带 --assets ./dist，可以保留；它仍需部署 main 字段的 worker/index.ts，而不能切换成仅静态资源模式。
 
@@ -56,3 +56,7 @@ worker 验证 Cf-Access-Jwt-Assertion 的 RS256 签名、issuer、audience、有
 ## 6. 独立 FFmpeg 服务
 
 新增 `/admin/media/` 和站主 `/api/admin/media/*` 代理。启用时需要独立 Linux/Docker 服务器、持久卷、HTTPS 服务地址，博客配置 Text `TRANSCODER_URL`、Secret `TRANSCODER_TOKEN`。站主确认暂时没有服务器，先完成代码与说明；不要设置虚假服务地址或把 Codex 临时进程当作生产服务。详见 [ffmpeg.md](ffmpeg.md)。R2 和正文媒体发布尚未接通。
+
+## 7. 评论直接显示与回复邮件
+
+评论提交后直接显示，站主可在 `/admin/comments/` 删除。可选邮箱与回复通知通过 Resend 接入；Secrets/发件域名/队列与限额配置见 [comment-email.md](comment-email.md)。未配置服务时不发送邮件，不影响评论发布。

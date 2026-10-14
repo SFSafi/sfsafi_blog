@@ -61,7 +61,7 @@ function heading(title: string, description = '') {
   return `<section class="page-heading"><div class="eyebrow">NOTES IN THIS SPACE</div><h1>${escape(title)}</h1><p>${escape(description)}</p></section>`;
 }
 export function commentsMarkup(postId: string) {
-  return `<section class="comments-panel" data-comments data-post-id="${escape(postId)}"><h2>评论</h2><p>评论经站主审核后显示。评论不会获得写文权限。</p><div data-comments-list></div><button data-comments-more hidden>更多评论</button><form data-comment-form><label>昵称<input name="nickname" maxlength="30" required autocomplete="nickname"></label><label>评论<textarea name="body" maxlength="1000" rows="4" required></textarea></label><p data-comment-reply hidden></p><button type="button" data-comment-cancel-reply hidden>取消回复</button><button type="submit">提交评论</button></form><p data-comments-status role="status"></p></section>`;
+  return `<section class="comments-panel" data-comments data-post-id="${escape(postId)}"><h2>评论</h2><p>评论提交后直接显示，站主可删除。</p><div data-comments-list></div><button data-comments-more hidden>更多评论</button><form data-comment-form><label>昵称<input name="nickname" maxlength="30" required autocomplete="nickname"></label><label>评论<textarea name="body" maxlength="1000" rows="4" required></textarea></label><label>邮箱（选填）<input name="email" type="email" maxlength="254" autocomplete="email" disabled></label><small data-comment-email-hint>邮箱仅用于回复通知，不会公开展示。提交后需在邮件中确认，可随时退订。</small><p data-comment-reply hidden></p><button type="button" data-comment-cancel-reply hidden>取消回复</button><button type="submit">提交评论</button></form><p data-comments-status role="status"></p></section>`;
 }
 interface PageEnv {
   DB?: D1Database;
