@@ -1,0 +1,130 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="更新推送">
+  <section class="page-heading">
+    <h1>
+      更新<span>推送。</span>
+    </h1>
+    <p>首次发布事件持久保存；Bot 接受事件与 QQ 实际送达是不同状态。</p>
+    <a href="/admin/posts/">返回文章管理</a>
+  </section>
+  <section class="editor-panel">
+    <p id="notifications-status" role="status">
+      正在验证站主身份…
+    </p>
+    <ul id="notifications-list"></ul>
+    <h2>QQ 投递任务</h2>
+    <ul id="qq-jobs"></ul>
+    <h2>群授权候选</h2>
+    <p>
+      群订阅只接受已授权群与操作人；候选 ID 仅站主可见，可填入 Bot 的
+      QQ_GROUP_IDS / QQ_GROUP_OPERATOR_IDS。
+    </p>
+    <ul id="qq-groups"></ul>
+  </section>
+  <script>
+    const status = document.querySelector('#notifications-status')!,
+      list = document.querySelector('#notifications-list')!,
+      jobs = document.querySelector('#qq-jobs')!,
+      groups = document.querySelector('#qq-groups')!;
+    async function retry(id: string, source: string, state: string) {
+      const uncertain = state === 'uncertain';
+      if (
+        !confirm(
+          uncertain
+            ? '请先核对 QQ 是否已收到。重新发送可能产生重复消息，仍要重试？'
+            : '确认重试失败任务？',
+        )
+      )
+        return;
+      try {
+        const response = await fetch('/api/admin/qq/retry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id,
+              source,
+              state,
+              confirmUncertain: uncertain,
+            }),
+            signal: AbortSignal.timeout(10000),
+          }),
+          data = await response.json();
+        if (!response.ok) throw Error(data.error);
+        status.textContent = '任务已重新排队，等待后台处理。';
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : '重试失败。';
+      }
+    }
+    (async () => {
+      try {
+        const response = await fetch('/api/admin/notifications', {
+            signal: AbortSignal.timeout(10000),
+          }),
+          data = await response.json();
+        if (!response.ok) throw Error(data.error);
+        status.textContent = data.configured
+          ? 'Bot 接口已配置；accepted 仅表示 Bot 已持久接收。'
+          : 'Bot 接口尚未配置，事件保留待发，不会调用 QQ。';
+        for (const event of data.items) {
+          const li = document.createElement('li');
+          li.textContent =
+            event.post_id +
+            ' · ' +
+            event.state +
+            ' · 尝试 ' +
+            event.attempts +
+            (event.last_error ? ' · ' + event.last_error : '');
+          if (event.state === 'failed') {
+            const button = document.createElement('button');
+            button.textContent = '重试';
+            button.addEventListener('click', () => {
+              void retry(event.event_id, 'site', event.state);
+            });
+            li.append(button);
+          }
+          list.append(li);
+        }
+        const r = await fetch('/api/admin/qq', {
+            signal: AbortSignal.timeout(10000),
+          }),
+          bot = await r.json();
+        if (!r.ok) throw Error(bot.error);
+        for (const job of bot.jobs) {
+          const li = document.createElement('li');
+          li.textContent =
+            job.id +
+            ' · ' +
+            job.state +
+            (job.last_error ? ' · ' + job.last_error : '');
+          if (['failed', 'uncertain'].includes(job.state)) {
+            const button = document.createElement('button');
+            button.textContent = '核对后重试';
+            button.addEventListener('click', () => {
+              void retry(job.id, 'bot', job.state);
+            });
+            li.append(button);
+          }
+          jobs.append(li);
+        }
+        for (const group of bot.groups) {
+          const li = document.createElement('li');
+          li.textContent =
+            '群 ' + group.group_id + ' · 操作人 ' + group.actor_id;
+          groups.append(li);
+        }
+        if (!bot.jobs.length)
+          jobs.textContent = '暂无 QQ 投递任务；表存在不代表 Bot 已部署。';
+        if (!bot.groups.length)
+          groups.textContent =
+            '暂无候选；Bot 部署后收到签名有效的群消息才会记录。';
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : '读取失败。';
+      }
+    })();
+  </script>
+</Base>

@@ -8,7 +8,7 @@
 
 站主已提供数据库 UUID，已写入 wrangler.jsonc 的 DB 绑定：8713524f-f776-4dbc-8a9f-1b03414c6cf6。
 
-无需复制 SQL 到网页：Worker 首次 API 请求会自动建立初始表与触发器，并用 space_schema 记录版本。初始化只接受四个纯新增迁移中的 CREATE TABLE/TRIGGER IF NOT EXISTS；每个版本在事务中提交，不删除/替换现有数据，可安全重复。构建时 npm prepare 从迁移文件生成忽略的 Worker schema 模块，不把测试数据库提交到 Git。
+无需复制 SQL 到网页：Worker 首次 API 请求会自动建立初始表与触发器，并用 space_schema 记录版本。初始化只接受六个纯新增迁移中的 CREATE TABLE/TRIGGER IF NOT EXISTS；每个版本在事务中提交，不删除/替换现有数据，可安全重复。构建时 npm prepare 从迁移文件生成忽略的 Worker schema 模块，不把测试数据库提交到 Git。
 
 Workers Git 自动构建使用 npm run build，部署命令使用 npx wrangler deploy；部署读取 wrangler.jsonc，DB 指向该 D1，ASSETS 指向 dist。如果当前部署命令带 --assets ./dist，可以保留；它仍需部署 main 字段的 worker/index.ts，而不能切换成仅静态资源模式。
 
@@ -47,3 +47,7 @@ worker 验证 Cf-Access-Jwt-Assertion 的 RS256 签名、issuer、audience、有
 ## 4. 公开站内 AI 搜索
 
 页面 /search/ 与接口 /api/search 已实现；站主配置 Secret AI_API_KEY、Text AI_BASE_URL/AI_MODEL 即可启用，详见 [ai-search.md](ai-search.md)。未配置时提供真实关键词搜索，不调用模型。默认全站每日 100 次、每网络地址每分钟 6 次，AI_DAILY_LIMIT 可调整或设置 0 暂停。
+
+## 5. 写文、评论与 Bot
+
+写文/审核的 OWNER_EMAIL 已配置为用户指定邮箱；仍需真实 ACCESS_TEAM_DOMAIN/AUD 与账号 Allow 策略。具体操作见 [writing.md](writing.md)。独立 Bot Git 项目与凭据步骤见 [qq-bot.md](qq-bot.md)，不要覆盖现有博客的 Worker 配置。现有自动部署仍跟踪 stage-a；博客与 Bot 的配置文件分别为 wrangler.jsonc 与 wrangler.bot.jsonc。

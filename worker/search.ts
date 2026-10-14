@@ -1,5 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import { repository, type Post } from '../src/lib/content';
+import { type Post } from '../src/lib/content';
+import { contentRepository } from './content-repository';
 import { readLimitedText, BodyTooLargeError } from './http';
 export interface SearchEnv {
   DB?: D1Database;
@@ -42,7 +43,13 @@ function rank(posts: Post[], query: string) {
   return posts
     .map((post) => {
       const title = (post.title || post.body.slice(0, 40)).toLocaleLowerCase();
-      const text = (post.body + ' ' + post.tags.join(' ')).toLocaleLowerCase();
+      const text = (
+        post.body +
+        ' ' +
+        post.tags.join(' ') +
+        ' ' +
+        (post.location?.label || '')
+      ).toLocaleLowerCase();
       const score = terms.reduce(
         (sum, t) =>
           sum + (title.includes(t) ? 4 : 0) + (text.includes(t) ? 1 : 0),
@@ -109,7 +116,10 @@ export async function searchRoute(
   // Always use the published/public repository contract, never the raw content array.
   const posts: Post[] = [];
   for (let page = 1; page <= 20; page++) {
-    const result = await repository.listPublished({ page, pageSize: 50 });
+    const result = await contentRepository(env.DB).listPublished({
+      page,
+      pageSize: 50,
+    });
     posts.push(...result.items);
     if (!result.hasMore) break;
   }
@@ -206,15 +216,7 @@ export async function searchRoute(
       await response.body?.cancel();
       return fallback('AI 服务暂不可用，以下为关键词结果。');
     }
-    const data = JSON.parse(
-      await readLimitedText(
-        new Request('https://search.internal/', {
-          method: 'POST',
-          body: response.body,
-        }),
-        32768,
-      ),
-    );
+    const data = JSON.parse(await readLimitedText(response, 32768));
     const text = data?.choices?.[0]?.message?.content;
     if (typeof text !== 'string') throw Error();
     const answer = JSON.parse(

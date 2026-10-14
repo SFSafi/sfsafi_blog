@@ -1,5 +1,6 @@
 import { readLimitedText, BodyTooLargeError } from './http';
-import { repository, type Post } from '../src/lib/content';
+import { type Post } from '../src/lib/content';
+import { contentRepository } from './content-repository';
 import { requireAdmin, type ProfileEnv } from './profile';
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -11,7 +12,8 @@ function json(value: unknown, status = 200) {
     },
   });
 }
-async function publicPosts() {
+async function publicPosts(env: ProfileEnv) {
+  const repository = contentRepository(env.DB);
   const posts: Post[] = [];
   let page = 1;
   while (true) {
@@ -29,7 +31,7 @@ async function locations(env: ProfileEnv) {
   const overrides = new Map(
     result.results.map((row) => [row.post_id, row.label]),
   );
-  return (await publicPosts()).map((post) => ({
+  return (await publicPosts(env)).map((post) => ({
     postId: post.id,
     title: post.title || post.body.slice(0, 32),
     path: post.canonicalPath,
@@ -82,7 +84,7 @@ export async function locationRoute(
       [...body.label.trim()].length > 80
     )
       return json({ error: '地点最多 80 字。' }, 400);
-    if (!(await repository.getPublished(body.postId)))
+    if (!(await contentRepository(env.DB).getPublished(body.postId)))
       return json({ error: '内容不存在或不可公开。' }, 404);
     await env.DB.prepare(
       'INSERT INTO post_locations(post_id,label,updated_at) VALUES(?,?,?) ON CONFLICT(post_id) DO UPDATE SET label=excluded.label,updated_at=excluded.updated_at',

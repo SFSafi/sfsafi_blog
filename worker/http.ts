@@ -1,5 +1,8 @@
 export class BodyTooLargeError extends Error {}
-export async function readLimitedText(request: Request, maxBytes = 1024) {
+export async function readLimitedText(
+  request: Pick<Request, 'body' | 'headers'>,
+  maxBytes = 1024,
+) {
   if (Number(request.headers.get('Content-Length')) > maxBytes)
     throw new BodyTooLargeError();
   const reader = request.body?.getReader();

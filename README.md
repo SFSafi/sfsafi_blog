@@ -1,6 +1,6 @@
 # SFSafi 的个人空间
 
-Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍为样例。stage-a 已部署真实 D1 互动统计与资料/地点读取，管理员写入需要 Cloudflare Access。新增 /search/ 站内搜索支持关键词和由站主配置的 OpenAI 兼容 AI 接口，配置见 docs/ai-search.md。
+Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍含样例。新增 D1 文字写文、草稿/发布/撤回与评论审核；管理员需配置 Cloudflare Access，写文和审核再次核对唯一站主邮箱。独立 QQ Bot 已准备部署，但尚无真实账号凭据。新增 /search/ 站内搜索支持关键词和由站主配置的 OpenAI 兼容 AI 接口，配置见 docs/ai-search.md。
 
 ## 云端开发
 
@@ -34,4 +34,6 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/sfsafi-browsers npm run test:e2e
 
 ## 文档
 
-[需求](docs/requirements.md) · [架构](docs/architecture.md) · [进度](docs/progress.md) · [部署](docs/deployment.md) · [运维](docs/operations.md) · [媒体和字体来源](docs/licenses.md) · [媒体上传需求](docs/media-upload.md) · [写文、评论与 QQ Bot 后续范围](docs/next-features.md)
+[需求](docs/requirements.md) · [架构](docs/architecture.md) · [进度](docs/progress.md) · [部署](docs/deployment.md) · [运维](docs/operations.md) · [媒体和字体来源](docs/licenses.md) · [媒体上传需求](docs/media-upload.md) · [写文与评论](docs/writing.md) · [QQ Bot 部署](docs/qq-bot.md) · [原后续范围](docs/next-features.md)
+
+Bot 单独打包：npm run build:bot。当前总检查需先 build:worker 与 build:bot，再运行 test:e2e；Bot 不用博客的部署配置。

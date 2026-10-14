@@ -1300,3 +1300,119 @@
     object-fit: cover;
   }
 }
+
+/* Owner editor and moderated comments use the existing page palette. */
+.editor-panel,
+.comments-panel {
+  padding: 24px 32px;
+  overflow-wrap: anywhere;
+}
+.editor-panel fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.editor-panel label,
+.comments-panel label {
+  display: block;
+  margin: 12px 0;
+}
+.editor-panel input:not([type='checkbox']),
+.editor-panel textarea,
+.editor-panel select,
+.comments-panel input,
+.comments-panel textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.editor-panel textarea {
+  resize: vertical;
+}
+.editor-panel .editor-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.editor-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.editor-actions button,
+.comments-panel button,
+.editor-panel button {
+  font: inherit;
+  padding: 8px 12px;
+  border-radius: 7px;
+}
+.editor-panel #posts-list {
+  padding: 0;
+  list-style: none;
+}
+.editor-panel #posts-list li {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.post-body pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  padding: 14px;
+  background: var(--soft);
+  border-radius: 8px;
+}
+.post-body table {
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+}
+@media (max-width: 600px) {
+  .editor-panel,
+  .comments-panel {
+    padding: 20px;
+  }
+}
+.comment-item {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.comment-item p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.comment-item small {
+  margin-left: 12px;
+  color: var(--muted);
+}
+.comment-item a,
+.comment-item button {
+  margin-right: 8px;
+}
+.comments-panel > p {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.post-card,
+.post-title,
+.post-body {
+  overflow-wrap: anywhere;
+}
+.sample-label {
+  font-size: 13px;
+}
+.tags a {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
