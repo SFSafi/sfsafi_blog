@@ -39,6 +39,7 @@ worker 验证 Cf-Access-Jwt-Assertion 的 RS256 签名、issuer、audience、有
 正式域名、完整 CMS、图文/视频上传和 QQ 推送尚未实现。代码回滚与内容恢复分别见 operations.md。
 
 官方资料（2026-10-14 查看）：
+
 - https://developers.cloudflare.com/d1/get-started/
 - https://developers.cloudflare.com/workers/static-assets/binding/
 - https://developers.cloudflare.com/workers/configuration/routing/workers-dev/
@@ -51,3 +52,7 @@ worker 验证 Cf-Access-Jwt-Assertion 的 RS256 签名、issuer、audience、有
 ## 5. 写文、评论与 Bot
 
 写文/审核的 OWNER_EMAIL 已配置为用户指定邮箱；仍需真实 ACCESS_TEAM_DOMAIN/AUD 与账号 Allow 策略。具体操作见 [writing.md](writing.md)。独立 Bot Git 项目与凭据步骤见 [qq-bot.md](qq-bot.md)，不要覆盖现有博客的 Worker 配置。现有自动部署仍跟踪 stage-a；博客与 Bot 的配置文件分别为 wrangler.jsonc 与 wrangler.bot.jsonc。
+
+## 6. 独立 FFmpeg 服务
+
+新增 `/admin/media/` 和站主 `/api/admin/media/*` 代理。启用时需要独立 Linux/Docker 服务器、持久卷、HTTPS 服务地址，博客配置 Text `TRANSCODER_URL`、Secret `TRANSCODER_TOKEN`。站主确认暂时没有服务器，先完成代码与说明；不要设置虚假服务地址或把 Codex 临时进程当作生产服务。详见 [ffmpeg.md](ffmpeg.md)。R2 和正文媒体发布尚未接通。

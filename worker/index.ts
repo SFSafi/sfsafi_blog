@@ -1,4 +1,5 @@
 import { qqAdminRoute } from './qq-admin';
+import { mediaRoute, type MediaEnv } from './media';
 import {
   notificationRoute,
   deliverUpdates,
@@ -16,7 +17,8 @@ import { contentRepository, ensureContentSeed } from './content-repository';
 import { postsRoute } from './posts';
 import { pageRoute } from './render';
 import type { OwnerEnv } from './owner';
-interface Env extends ProfileEnv, SearchEnv, OwnerEnv, NotificationEnv {
+interface Env
+  extends ProfileEnv, SearchEnv, OwnerEnv, NotificationEnv, MediaEnv {
   DB?: D1Database;
   ASSETS: { fetch(request: Request): Promise<Response> };
 }
@@ -93,6 +95,8 @@ export default {
         return env.ASSETS.fetch(request);
       return new Response('Not found', { status: 404 });
     }
+    const mediaResponse = await mediaRoute(request, env);
+    if (mediaResponse) return mediaResponse;
     if (env.DB) {
       try {
         await ensureInitialSchema(env.DB);

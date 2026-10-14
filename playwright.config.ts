@@ -5,7 +5,7 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:4321', headless: true },
   webServer: [
     {
-      command: 'npm run preview -- --port 4321',
+      command: 'npm run preview -- --port 4321 --ignore-lock',
       url: 'http://127.0.0.1:4321',
       reuseExistingServer: !process.env.CI,
     },

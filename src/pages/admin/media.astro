@@ -1,0 +1,59 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="视频转码">
+  <section class="page-heading">
+    <h1>
+      处理<span>视频。</span>
+    </h1>
+    <p>视频自动转为网页播放版本。文件仅站主可访问，尚未接通正文发布。</p>
+    <a href="/admin/write/">返回写文 →</a>
+  </section>
+  <section class="editor-panel">
+    <p id="media-status" role="status">
+      正在检查转码服务…
+    </p>
+    <form id="media-form">
+      <fieldset disabled>
+        <label>
+          质量
+          <select name="preset">
+            <option value="standard">标准 · 720p</option>
+            <option value="high">高质量 · 1080p</option>
+            <option value="economy">省空间 · 480p</option>
+            <option value="original">原素材 · 不兼容时另生成播放版本</option>
+          </select>
+        </label>
+        <label class="editor-check">
+          <input type="checkbox" name="keepOriginal" />
+          同时保留原素材
+        </label>
+        <label>
+          选择视频（选定后自动上传并转码，限 64 MiB / 10 分钟）
+          <input type="file" name="file" accept="video/*,.mkv,.avi" />
+        </label>
+        <p>
+          原素材可能包含拍摄元数据。默认仅保存播放版本和封面；未保存的原素材仍在你的设备中。
+        </p>
+      </fieldset>
+    </form>
+    <progress
+      id="media-progress"
+      max="100"
+      value="0"
+      hidden
+      aria-label="上传进度"
+    ></progress>
+    <button id="media-cancel" type="button" hidden>
+      取消上传
+    </button>
+    <button id="media-retry" type="button" hidden>
+      重新上传所选视频
+    </button>
+    <div id="media-result"></div>
+  </section>
+  <script>
+    import '../../lib/media-client';
+  </script>
+</Base>

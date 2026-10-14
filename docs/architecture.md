@@ -56,3 +56,7 @@ Wrangler 固定 4.100.0（配套稳定 Miniflare 4），避免当前最新 CLI �
 站主 API 验证 Access 签名和 OWNER_EMAIL，客户端禁用按钮不是权限边界。Markdown 原始 HTML 与不安全链接被拒绝执行，远程 Markdown 图片暂不渲染。评论待审核、一级回复，唯一站主审核/回复；昵称不等于认证。
 
 网站 publication_outbox 通过签名接口通知独立 Bot Worker，qq_* 表持久保存订阅/投递；两服务复用已有 D1，但代码/部署配置独立。QQ 官方 HTTP Webhook 使用真实 Ed25519 校验，Node crypto 在 nodejs_compat 下本地 Workerd 验证通过。真实平台账号授权与服务部署仍未完成，见 qq-bot.md。R2 与正文媒体上传按用户指示暂缓。
+
+## FFmpeg 接入（2026-10-14）
+
+站主要求接入真实 FFmpeg，并确认暂时没有服务器，先完成代码/部署说明。`transcoder/service.py` 为独立服务，SQLite 持久任务、受限 FFmpeg 子进程、私有持久卷；`worker/media.ts` 仅站主鉴权后代理上传/任务/Range，不将服务密钥发送给浏览器。`/admin/media/` 默认标准自动转码、可选档位和保留原素材，支持任务 URL 恢复、实际大小和私有播放预览。Docker Compose 与维护步骤见 ffmpeg.md。R2、公开媒体读取、正文绑定尚未实现，发布仍只接受原有文字，不把私有转码结果标为公开媒体。

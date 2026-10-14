@@ -22,3 +22,5 @@
 站主明确要求后续写文页面（仅本人可创建/编辑/发布，其他身份不能写文）、评论、更新订阅到 QQ Bot 的接口及真实 QQ Bot 部署。按 docs/next-features.md 处理权限、上线事件和部署边界；文字后台/评论及独立 QQ Worker 已进入实现，按 progress.md 区分代码、本地测试和真实部署；未验收不得声称真实登录/投递，不启用未授权的付费资源。
 
 写文/审核必须 requireOwner，检查真实 Access JWT 与 OWNER_EMAIL。用户已提供邮箱并确认 QQ 群/个人均需；R2 未建立，明确要求先做其他功能，正文媒体上传暂缓。所有文字通过 D1 ContentRepository 读取，部署保留现有 D1 数据；Bot 为独立 wrangler.bot.jsonc，不用网站配置部署。CI 必须同时 build:worker、build:bot，再运行全套测试；QQ 模拟回执不等于真实投递。
+
+FFmpeg 视频转码已获授权，用户确认暂时没有服务器，先完成代码和部署说明。独立 transcoder/ 服务及站主 /admin/media/ 已实现，必须保持服务密钥私有、真实编码与私有预览；R2、正文绑定与公开媒体发布仍未接通。媒体修改需额外运行 Python/FFmpeg 真实编码检查（见 docs/ffmpeg.md），不把 Codex 临时文件或转码模拟结果称为生产上传。

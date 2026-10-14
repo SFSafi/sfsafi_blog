@@ -37,3 +37,5 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/sfsafi-browsers npm run test:e2e
 [需求](docs/requirements.md) · [架构](docs/architecture.md) · [进度](docs/progress.md) · [部署](docs/deployment.md) · [运维](docs/operations.md) · [媒体和字体来源](docs/licenses.md) · [媒体上传需求](docs/media-upload.md) · [写文与评论](docs/writing.md) · [QQ Bot 部署](docs/qq-bot.md) · [原后续范围](docs/next-features.md)
 
 Bot 单独打包：npm run build:bot。当前总检查需先 build:worker 与 build:bot，再运行 test:e2e；Bot 不用博客的部署配置。
+
+视频转码：独立 FFmpeg 服务与站主 `/admin/media/` 页面已实现，见 [部署说明](docs/ffmpeg.md)。真实服务器与 R2 尚未接通，不能直接发布正文视频。服务使用 Python 3.11+、FFmpeg/ffprobe；真实编码检查命令：`python3 -m unittest discover -s transcoder -p 'test_*.py' -v`。

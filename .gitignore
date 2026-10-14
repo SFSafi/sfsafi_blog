@@ -8,3 +8,5 @@ playwright-report/
 test-results/
 .wrangler/
 worker/generated/
+__pycache__/
+transcoder/.env
