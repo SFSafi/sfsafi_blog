@@ -87,7 +87,7 @@ function walkFiles(dir) {
 }
 function collectCode(source, path) {
   const group =
-    /admin|backup|editor-client|media-client|posts-client|site-settings|posts\.ts|owner\.ts|site-copy\.ts|worker\/(profile|locations|notifications)\.ts/i.test(
+    /admin|backup|editor-client|media-client|posts-client|site-settings|posts\.ts|owner\.ts|site-copy\.ts|worker\/(profile|locations|notifications|media)\.ts/i.test(
       path,
     )
       ? '管理界面'

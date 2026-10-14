@@ -292,6 +292,8 @@ test('站点文案：私有写权限、即时静态/动态页面、安全文字�
       [key('很高兴，你路过这里。')]: '<script>window.copyInjected=1</script>',
       [key('慢慢写，慢慢生活。')]: '新的首页介绍',
       [key('管理概览')]: '仅后台的导航文案',
+      [key('FFmpeg 服务尚未部署或配置，视频上传暂不可用。')]:
+        '仅后台的服务文案',
       [key('搜索中…')]: '正在认真找…',
     };
     const payload = {
@@ -320,6 +322,7 @@ test('站点文案：私有写权限、即时静态/动态页面、安全文字�
     expect(home).toContain('新的首页介绍');
     expect(home).toContain('改过的顶部介绍');
     expect(home).not.toContain('仅后台的导航文案');
+    expect(home).not.toContain('仅后台的服务文案');
     const about = await (await f.dispatch('/about/', undefined, false)).text();
     expect(about).toContain(
       '&lt;script&gt;window.copyInjected=1&lt;/script&gt;',
