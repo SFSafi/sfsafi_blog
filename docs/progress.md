@@ -71,4 +71,6 @@ PR #2 已合入 stage-a，GitHub 推送/PR/main/stage-a 检查与 Cloudflare pro
 
 本地最终验证：0 errors/0 warnings/0 hints，31 页 Astro 构建与两份 Worker dry-run 成功，26 项 Playwright 全部通过。所有新增数据库/重启/浏览器测试使用真实本地 Workerd/D1；Access 身份用受控签名/JWKS，QQ 响应用模拟官方协议；不能称真实邮箱登录或 QQ 已投递。
 
-网站部署等待分支 CI/Cloudflare 构建复验。真实 Access 团队域名/AUD、QQ 应用授权/凭据与独立 Bot Git 项目仍待站主网页配置；wrangler whoami 明确未登录，环境不能代建账号资源。正文媒体上传/自动转码按用户要求暂缓，未启用付费套餐。配置见 writing.md、qq-bot.md。
+PR #3 已合入 stage-a，main 同步；GitHub 推送/PR/合并检查与 Cloudflare production 构建通过。线上真实 D1 首页、四种宽度、阅览/原链接与分享、评论读取与表单、未登录写文锁定、草稿 404、内部模板 404 已复验，原统计仍保留。线上写文配置探测确认 Access 尚未配置；未创建测试文章或评论。真实 Access 团队域名/AUD、QQ 应用授权/凭据与独立 Bot Git 项目仍待站主网页配置；wrangler whoami 明确未登录，环境不能代建账号资源。正文媒体上传/自动转码按用户要求暂缓，未启用付费套餐。配置见 writing.md、qq-bot.md。
+
+云环境 npm ci 冻结安装、check/build:worker/build:bot/db:local 已再次执行成功，安装与启动配置草稿更新为双 Worker + 26 项检查。QQ 真实部署、登录、发消息依然是账号外部步骤，不把代码打包称为上线。
