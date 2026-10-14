@@ -33,7 +33,7 @@
 | Bot Worker | QQ_GROUP_OPERATOR_IDS | Text，允许操作群订阅的 member_openid，多个逗号分隔 |
 | 博客 Worker | QQ_BOT_WEBHOOK_URL | Text，**实际部署成功的** Bot 地址加 `/site-updates` |
 
-4. 将实际 Bot 地址的 `/qq/events` 配置为 QQ 官方事件回调，完成 URL 验证，订阅 GROUP_AT_MESSAGE_CREATE、C2C_MESSAGE_CREATE 及对应退订/移除事件。
+4. 将实际 Bot 地址的 `/qq/events` 配置为 QQ 官方事件回调，完成 URL 验证（回调须公开可达，由 Ed25519 验证，不套用站主管理页的 Access 登录），订阅 GROUP_AT_MESSAGE_CREATE、C2C_MESSAGE_CREATE 及对应退订/移除事件。
 5. 在指定群 @Bot。经过签名验证的群/操作人 OpenID 会出现在站主 `/admin/notifications/` 的“群授权候选”，只对站主可见。选择有权操作的群和成员填写白名单；空白名单时不接受群订阅，不能把任意成员操作当作整群授权。
 6. 私聊发送“订阅”，群授权操作人 @Bot 发送“订阅”；也支持“订阅 #标签”“查看订阅”“退订/取消订阅”。身份来源于签名有效的官方事件，不接受网站上任意填写 QQ 号码作为目标。
 
@@ -47,7 +47,7 @@ Bot 每分钟处理任务，Webhook 也会唤起处理。订阅扇出分批、�
 
 只向事件发生前已有效订阅且标签匹配的目标创建任务。发送前再次检查订阅/标签/群授权、文章可访问和版本；退订、移除授权、撤回文章阻止待发任务。失败指数退避，网站最多 8 次、Bot 最多 5 次；任务和结果在 D1 保存，重启不重复生成已存在任务。
 
-QQ群/个人发送 API 的真实回执有 message ID 时才记 sent。网络超时/结果不确定记 uncertain，不自动盲目重发。站主在通知页核对后可以手动重试 failed/uncertain；uncertain 必须明确确认可能重复。无法承诺网络异常下绝对恰好一次送达。
+QQ群/个人发送 API 的真实回执有 message ID 时才记 sent。网络超时、服务器异常或成功响应缺失有效回执等结果不确定情况记 uncertain，不自动盲目重发。站主在通知页核对后可以手动重试 failed/uncertain；uncertain 必须明确确认可能重复。无法承诺网络异常下绝对恰好一次送达。
 
 ## 验收与运维
 

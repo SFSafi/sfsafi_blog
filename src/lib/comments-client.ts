@@ -14,7 +14,8 @@ for (const section of document.querySelectorAll<HTMLElement>(
   let page = 1,
     parentId: string | null = null,
     clientId = crypto.randomUUID(),
-    busy = false;
+    busy = false,
+    attempted = false;
   const nickname = form.elements.namedItem('nickname') as HTMLInputElement,
     body = form.elements.namedItem('body') as HTMLTextAreaElement;
   async function load() {
@@ -62,6 +63,7 @@ for (const section of document.querySelectorAll<HTMLElement>(
         list.append(article);
       }
       more.hidden = !data.hasMore;
+      page++;
       status.textContent = list.children.length
         ? '仅展示已审核评论。'
         : '还没有已审核评论。';
@@ -73,7 +75,6 @@ for (const section of document.querySelectorAll<HTMLElement>(
     }
   }
   more.addEventListener('click', () => {
-    page++;
     void load();
   });
   cancel.addEventListener('click', () => {
@@ -82,10 +83,17 @@ for (const section of document.querySelectorAll<HTMLElement>(
     reply.hidden = true;
     cancel.hidden = true;
   });
+  form.addEventListener('input', () => {
+    if (attempted && !busy) {
+      clientId = crypto.randomUUID();
+      attempted = false;
+    }
+  });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (busy) return;
     busy = true;
+    attempted = true;
     nickname.disabled = true;
     body.disabled = true;
     cancel.disabled = true;
@@ -107,6 +115,7 @@ for (const section of document.querySelectorAll<HTMLElement>(
       const data = await response.json();
       if (!response.ok) throw Error(data.error || '提交失败。');
       body.value = '';
+      attempted = false;
       parentId = null;
       reply.hidden = true;
       cancel.hidden = true;

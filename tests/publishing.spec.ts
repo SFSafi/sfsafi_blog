@@ -1,7 +1,7 @@
 import { deliverUpdates } from '../worker/notifications';
 import type { D1Database } from '@cloudflare/workers-types';
 import { createHmac } from 'node:crypto';
-import { test, expect } from '@playwright/test';
+import { test, expect, type BrowserContext } from '@playwright/test';
 import { Miniflare, createFetchMock } from 'miniflare';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
@@ -242,6 +242,7 @@ test('真实本地 D1 浏览器写文、预览、发布及评论审核；读者�
 }) => {
   const f = await fixture();
   const context = await browser.newContext();
+  let visitor: BrowserContext | undefined;
   async function routeContext(target: any, owner: boolean) {
     await target.route(base + '/**', async (route: any) => {
       const r = route.request(),
@@ -289,7 +290,7 @@ test('真实本地 D1 浏览器写文、预览、发布及评论审核；读者�
     await expect(page.locator('#editor-status')).toHaveText(
       '发布成功，该版本已上线。',
     );
-    const visitor = await browser.newContext();
+    visitor = await browser.newContext();
     await routeContext(visitor, false);
     const read = await visitor.newPage();
     await read.goto(base + '/posts/' + id + '/');
@@ -340,9 +341,16 @@ test('真实本地 D1 浏览器写文、预览、发布及评论审核；读者�
     await read.goto(base + '/admin/write/');
     await expect(read.locator('#editor-status')).toContainText('登录');
     await expect(read.getByLabel('正文（Markdown）')).toBeDisabled();
+    await visitor.unrouteAll({ behavior: 'wait' });
     await visitor.close();
+    visitor = undefined;
   } finally {
-    await context.close().catch(() => {});
+    if (visitor) {
+      await visitor.unrouteAll({ behavior: 'wait' });
+      await visitor.close();
+    }
+    await context.unrouteAll({ behavior: 'wait' });
+    await context.close();
     await f.close();
   }
 });

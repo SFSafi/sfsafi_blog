@@ -404,3 +404,89 @@ test('QQ Bot：撤回阻止投递、失败不伪装发送成功', async () => {
     await mf.dispose();
   }
 });
+
+test('QQ Bot：成功状态却缺少发送回执时保留 uncertain，不自动重发', async () => {
+  let requests = 0;
+  const options = {
+    script: readFileSync('/tmp/sfsafi-bot-bundle/worker.js', 'utf8'),
+    modules: true,
+    compatibilityDate: '2026-06-01',
+    compatibilityFlags: ['nodejs_compat'],
+    d1Databases: { DB: 'bot' },
+    bindings: {
+      QQ_APP_ID: 'test-app',
+      QQ_APP_SECRET: appSecret,
+      QQ_SITE_SECRET: siteSecret,
+      SITE_URL: site,
+    },
+    outboundService: async (request: any) => {
+      if (request.url.startsWith(site))
+        return new Response('<article data-post-revision="2">public</article>');
+      if (request.url.endsWith('/getAppAccessToken'))
+        return Response.json({
+          access_token: 'fixture-access-token',
+          expires_in: 3600,
+        });
+      requests++;
+      return Response.json({});
+    },
+  };
+  const mf = new Miniflare(options);
+  try {
+    await mf.dispatchFetch(
+      bot + '/qq/events',
+      qqRequest({
+        op: 0,
+        id: 'subscribe-uncertain',
+        t: 'C2C_MESSAGE_CREATE',
+        d: {
+          author: { user_openid: 'reader' },
+          content: '订阅',
+          timestamp: new Date().toISOString(),
+        },
+      }),
+    );
+    const db = await mf.getD1Database('DB');
+    await expect
+      .poll(async () =>
+        Number(
+          (
+            (await db
+              .prepare('SELECT count(*) AS count FROM qq_subscriptions')
+              .first()) as any
+          ).count,
+        ),
+      )
+      .toBe(1);
+    const id = 'post-' + crypto.randomUUID(),
+      event = {
+        eventId: 'first-published:' + id,
+        postId: id,
+        revision: 2,
+        eventType: 'first_published',
+        occurredAt: new Date().toISOString(),
+        title: '更新',
+        excerpt: '摘要',
+        tags: [],
+        url: site + '/posts/' + id + '/',
+      };
+    await mf.dispatchFetch(bot + '/site-updates', siteRequest(event));
+    await expect
+      .poll(async () =>
+        String(
+          ((await db.prepare('SELECT state FROM qq_deliveries').first()) as any)
+            ?.state,
+        ),
+      )
+      .toBe('uncertain');
+    expect(requests).toBe(1);
+    await mf.dispatchFetch(bot + '/site-updates', siteRequest(event));
+    expect(
+      ((await db.prepare('SELECT state FROM qq_deliveries').first()) as any)
+        .state,
+    ).toBe('uncertain');
+    expect(requests).toBe(1);
+  } finally {
+    await mf.dispose();
+  }
+});

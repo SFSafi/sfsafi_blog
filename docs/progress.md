@@ -74,3 +74,5 @@ PR #2 已合入 stage-a，GitHub 推送/PR/main/stage-a 检查与 Cloudflare pro
 PR #3 已合入 stage-a，main 同步；GitHub 推送/PR/合并检查与 Cloudflare production 构建通过。线上真实 D1 首页、四种宽度、阅览/原链接与分享、评论读取与表单、未登录写文锁定、草稿 404、内部模板 404 已复验，原统计仍保留。线上写文配置探测确认 Access 尚未配置；未创建测试文章或评论。真实 Access 团队域名/AUD、QQ 应用授权/凭据与独立 Bot Git 项目仍待站主网页配置；wrangler whoami 明确未登录，环境不能代建账号资源。正文媒体上传/自动转码按用户要求暂缓，未启用付费套餐。配置见 writing.md、qq-bot.md。
 
 云环境 npm ci 冻结安装、check/build:worker/build:bot/db:local 已再次执行成功，安装与启动配置草稿更新为双 Worker + 26 项检查。QQ 真实部署、登录、发消息依然是账号外部步骤，不把代码打包称为上线。
+
+补充修复：最新 main 曾因浏览器尚有路由请求、本地 Worker 提前关闭而报 SocketError。测试改为等待路由结束再销毁服务，保留所有断言，失败浏览器场景连续 3 次通过。QQ 成功状态缺失有效回执/发送后网络结果不确定不再自动重发，补充相关验收。最终本地完整 27 项通过；评论编辑后重试使用新提交 ID，分页失败保留当前页以便重试。

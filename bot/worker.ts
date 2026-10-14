@@ -110,6 +110,7 @@ async function qqToken(env: BotEnv) {
   });
   return data.access_token as string;
 }
+class UncertainDelivery extends Error {}
 async function sendQQ(
   env: BotEnv,
   kind: string,
@@ -117,30 +118,45 @@ async function sendQQ(
   content: string,
   messageId?: string,
 ) {
-  const response = await fetch(
-    `https://api.bot.qq.com/v2/${kind === 'group' ? 'groups' : 'users'}/${encodeURIComponent(target)}/messages`,
-    {
-      method: 'POST',
-      redirect: 'manual',
-      signal: AbortSignal.timeout(10000),
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'QQBot ' + (await qqToken(env)),
+  // Token failures happen before sending a message and are safe to retry.
+  const token = await qqToken(env);
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://api.bot.qq.com/v2/${kind === 'group' ? 'groups' : 'users'}/${encodeURIComponent(target)}/messages`,
+      {
+        method: 'POST',
+        redirect: 'manual',
+        signal: AbortSignal.timeout(10000),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'QQBot ' + token,
+        },
+        body: JSON.stringify({
+          content,
+          msg_type: 0,
+          ...(messageId ? { msg_id: messageId, msg_seq: 1 } : {}),
+        }),
       },
-      body: JSON.stringify({
-        content,
-        msg_type: 0,
-        ...(messageId ? { msg_id: messageId, msg_seq: 1 } : {}),
-      }),
-    },
-  );
+    );
+  } catch {
+    throw new UncertainDelivery();
+  }
   if (!response.ok) {
     if (response.status === 401) tokens.clear();
     await response.body?.cancel();
+    if (response.status >= 500) throw new UncertainDelivery();
     throw Error('QQ HTTP ' + response.status);
   }
-  const data = JSON.parse(await readLimitedText(response, 16384));
-  if (typeof data.id !== 'string' || !data.id) throw Error('QQ 未确认发送');
+  let data: any;
+  try {
+    data = JSON.parse(await readLimitedText(response, 16384));
+  } catch {
+    throw new UncertainDelivery();
+  }
+  if (Number.isInteger(data.code) && data.code !== 0)
+    throw Error('QQ code ' + data.code);
+  if (typeof data.id !== 'string' || !data.id) throw new UncertainDelivery();
   return data.id as string;
 }
 function native(payload: any, env: BotEnv): Native | undefined {
@@ -461,9 +477,7 @@ export async function processBot(env: BotEnv) {
           `${payload.title}\n${payload.excerpt}\n${payload.url}`,
         );
       } catch (error) {
-        const uncertain =
-          error instanceof Error &&
-          ['TimeoutError', 'AbortError', 'TypeError'].includes(error.name);
+        const uncertain = error instanceof UncertainDelivery;
         if (uncertain) {
           await env.DB.prepare(
             "UPDATE qq_deliveries SET state='uncertain',lease_until=0,last_error='网络结果不确定，需核对，未自动重发' WHERE id=?",
@@ -482,7 +496,8 @@ export async function processBot(env: BotEnv) {
     } catch (error) {
       const attempts = job.attempts + 1;
       const reason =
-        error instanceof Error && /^QQ HTTP \d{3}$/.test(error.message)
+        error instanceof Error &&
+        /^QQ (?:HTTP \d{3}|code \d+)$/.test(error.message)
           ? error.message
           : '投递暂不可用';
       await env.DB.prepare(
