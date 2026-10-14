@@ -3,14 +3,29 @@ import { formatDate, type Post } from '../lib/content';
 import MediaGrid from './MediaGrid.astro';
 import Engagement from './Engagement.astro';
 import SharePost from './SharePost.astro';
+import ReadingTools from './ReadingTools.astro';
+import { markdownDocument } from '../lib/markdown';
+import { contentText } from '../lib/text';
 const { post, detail = false } = Astro.props as {
   post: Post;
   detail?: boolean;
 };
+const preview = detail
+  ? ''
+  : post.excerpt || contentText({ ...post, body: post.body.slice(0, 1200) });
+const body = detail
+  ? post.body
+  : preview.slice(0, 280) + (preview.length > 280 ? '…' : '');
+const document =
+  detail && post.bodyFormat === 'markdown' ? markdownDocument(body) : undefined;
 ---
 
 <article
-  class:list={['post-card', { pinned: post.pinned, 'detail-card': detail }]}
+  class:list={[
+    'post-card',
+    { pinned: post.pinned, 'detail-card': detail, 'feed-card': !detail },
+  ]}
+  data-reading={detail && post.kind === 'article' ? '' : undefined}
   data-location-post={post.id}
 >
   {post.pinned && (
@@ -48,13 +63,18 @@ const { post, detail = false } = Astro.props as {
       <a href={post.canonicalPath}>{post.title}</a>
     </h2>
   )}
-  <div class="post-body">
-    {(detail ? post.body : post.excerpt || post.body)
-      .split('\n\n')
-      .map((paragraph) => (
+  {detail && post.kind === 'article' && (
+    <ReadingTools body={post.body} headings={document?.headings} />
+  )}
+  {document ? (
+    <div class="post-body" set:html={document.html} />
+  ) : (
+    <div class="post-body">
+      {body.split('\n\n').map((paragraph) => (
         <p>{paragraph}</p>
       ))}
-  </div>
+    </div>
+  )}
   <MediaGrid media={post.media} />
   <a
     class="post-location"
@@ -80,8 +100,10 @@ const { post, detail = false } = Astro.props as {
   {detail && post.updatedAt !== post.firstPublishedAt && (
     <p class="muted">更新于 {formatDate(post.updatedAt)}</p>
   )}
-  <SharePost post={post} />
-  <Engagement postId={post.id} detail={detail} />
+  <div class="post-tools">
+    <Engagement postId={post.id} detail={detail} />
+    <SharePost post={post} />
+  </div>
 </article>
 
 <script>

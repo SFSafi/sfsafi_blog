@@ -66,3 +66,15 @@ Wrangler 固定 4.100.0（配套稳定 Miniflare 4），避免当前最新 CLI �
 `src/layouts/Admin.astro` 使用独立管理布局，统一导航与主题，不加载公开阅读页的媒体/分享脚本。内容列表支持状态筛选与正文搜索，写文支持自动先保存再发布。删除在 contents.document 写入 deletedAt 并将状态设为 archived；公开读取仍限定 published，回收站编辑/发布拒绝，恢复变为 draft。版本 CAS 与邮件取消在 D1 batch 事务内执行；历史行保留，避免样例 INSERT OR IGNORE 在重启后重新导入。稳定 ID、统计、历史评论及首次发布事件去重规则保持。
 
 0008 新增 site_settings，文案写入有 Access + OWNER_EMAIL、同源、长度、目录键及占位符校验和版本 CAS。scripts/prepare-copy.mjs 在构建阶段生成规范化默认文字目录；parse5 仅用于构建，不进入浏览器/Worker。Worker 使用原生 HTMLRewriter 为静态与动态 HTML 应用纯文本文案、注入该页允许的设置，响应 no-store，浏览器 MutationObserver 处理后续交互文本；分享图片使用同一文案函数。显式保护用户内容、代码、表单值及结构化资料，后端限制管理员专用文案的可见范围。网站名称单独控制品牌与页面标题，文章标题不随文案设置变化。操作见 admin.md。
+
+## 社交阅读、公开发现与写作备份（2026-10-14）
+
+参考 Twitter 的信息流/互动、小红书的分类/标签发现、Instagram 的媒体浏览，采用可链接、可刷新的分类入口而不引入 SPA。ContentRepository 支持 notes/media 筛选、按首次发布时间排序和按共同标签选择 3 条公开相关内容。信息流用纯文本短预览，完整正文留在稳定详情页；图片按数量适配网格，弹窗支持原生触摸横向切换及原有键盘/焦点归还。统计查询在原 SQL 中增加可见评论总数，沿用父评论状态检查，删除父评论不会留下回复计数。
+
+src/lib/markdown.ts 统一安全 Markdown 渲染，详情生成唯一序号标题 ID 与目录；纯文本提取使用 Marked Lexer，保留普通星号、代码下划线等文字。reading-client 只在文章详情启用，requestAnimationFrame + ResizeObserver 更新阅读进度，尊重减少动态效果偏好。目录与相关内容显式标记为用户正文，不受网站文案替换。
+
+worker/discovery.ts 输出 RSS/站点地图/robots，始终通过 ContentRepository 读取 published/public，no-store，RSS 限最近 50 条且置顶不改变订阅顺序；XML 独立转义并移除非法控制字符。PUBLIC_SITE_URL 控制规范域名，默认 sfsafi-blog.uk；Open Graph/Twitter 元数据和 JSON-LD 使用真实公开文章，文案设置同步站名/介绍，不依赖浏览器执行才能被读取。部署和搜索引擎收录是两回事，未验证实际收录。
+
+worker/backups.ts 的读取需要唯一站主；导出限 5000 条/5 MiB，包含所有 contents 状态、地点覆盖、网站文案与公开个人资料，不含私有邮箱、评论/统计或媒体字节。浏览器校验归档版本与文字字段，恢复使用原站主发文 API，新 UUID、draft、原 bodyFormat，原记录不变；失败重试检查已创建的同一草稿，不自动创建第二份。备份不是完整 D1 快照，见 backup.md。未增加数据库迁移、外部服务或付费资源。
+
+按 Cloudflare D1 的每查询最多 100 个参数、免费版每请求 50 次查询限制：备份用一次 LEFT JOIN 合并地点，站点地图按专用 metadata 查询每批 1000 条（不加载正文/地点），单份上限 10000 条内容并校验 50000 个总链接，超限需要分片。后台文字搜索使用 INSTR，而非受 50 字节模式限制的 LIKE；保留中文长查询及字面 `%`/`_` 搜索。官方限额：https://developers.cloudflare.com/d1/platform/limits/ （2026-10-14 核对）。

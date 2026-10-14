@@ -1,4 +1,7 @@
 import { applySiteCopy, siteCopyRoute } from './site-copy';
+import { discoveryRoute } from './discovery';
+import { backupsRoute } from './backups';
+import type { SiteConfig } from '../src/lib/site';
 import {
   commentEmailRoute,
   deliverCommentMail,
@@ -31,6 +34,7 @@ interface Env
     NotificationEnv,
     MediaEnv,
     CommentMailEnv {
+  PUBLIC_SITE_URL?: SiteConfig['PUBLIC_SITE_URL'];
   DB?: D1Database;
   ASSETS: { fetch(request: Request): Promise<Response> };
 }
@@ -40,6 +44,7 @@ interface Stats {
   likes: number;
   dislikes: number;
   myVote: number;
+  comments: number;
 }
 async function stats(
   db: D1Database,
@@ -48,7 +53,7 @@ async function stats(
 ): Promise<Stats> {
   const row = await db
     .prepare(
-      'SELECT s.views,s.likes,s.dislikes,COALESCE(v.value,0) AS myVote FROM post_stats s LEFT JOIN votes v ON v.post_id=s.post_id AND v.visitor_id=? WHERE s.post_id=?',
+      "SELECT s.views,s.likes,s.dislikes,COALESCE(v.value,0) AS myVote,(SELECT COUNT(*) FROM comments cm LEFT JOIN comments parent ON parent.id=cm.parent_id WHERE cm.post_id=c.id AND cm.status IN ('approved','pending') AND (cm.parent_id IS NULL OR parent.status IN ('approved','pending'))) AS comments FROM contents c LEFT JOIN post_stats s ON s.post_id=c.id LEFT JOIN votes v ON v.post_id=c.id AND v.visitor_id=? WHERE c.id=?",
     )
     .bind(visitorId, id)
     .first<{
@@ -56,6 +61,7 @@ async function stats(
       likes: number;
       dislikes: number;
       myVote: number;
+      comments: number;
     }>();
   return {
     postId: id,
@@ -63,6 +69,7 @@ async function stats(
     likes: row?.likes ?? 0,
     dislikes: row?.dislikes ?? 0,
     myVote: row?.myVote ?? 0,
+    comments: row?.comments ?? 0,
   };
 }
 export default {
@@ -89,7 +96,7 @@ export default {
       return Response.redirect(url.origin + '/' + url.search, 308);
     if (
       url.pathname.endsWith('/index.html') &&
-      /^\/(posts|page|articles|tags|locations|admin|about|search)\//.test(
+      /^\/(posts|page|articles|tags|locations|admin|about|search|subscribe)\//.test(
         url.pathname,
       )
     )
@@ -102,10 +109,18 @@ export default {
         url.pathname,
       );
     const htmlAsset =
-      /^\/(admin(?:\/|$)|about(?:\/|$)|search(?:\/|$)|404\.html$)/.test(
+      /^\/(admin(?:\/|$)|about(?:\/|$)|search(?:\/|$)|subscribe(?:\/|$)|404\.html$)/.test(
         url.pathname,
       );
-    if (!url.pathname.startsWith('/api/') && !dynamic && !htmlAsset) {
+    const discovery = ['/rss.xml', '/sitemap.xml', '/robots.txt'].includes(
+      url.pathname,
+    );
+    if (
+      !url.pathname.startsWith('/api/') &&
+      !dynamic &&
+      !htmlAsset &&
+      !discovery
+    ) {
       if (
         /^\/(?:_astro\/|media\/|licenses\/|admin\/|about\/|search\/|favicon\.svg$|404\.html$)/.test(
           url.pathname,
@@ -126,6 +141,16 @@ export default {
           error instanceof Error ? error.message : 'unknown',
         );
         return json({ error: '数据库初始化暂不可用，请稍后重试。' }, 503);
+      }
+    }
+    if (discovery) {
+      try {
+        return (await discoveryRoute(request, env))!;
+      } catch {
+        return new Response('订阅与站点地图暂不可用，请稍后重试。', {
+          status: 503,
+          headers: { 'Cache-Control': 'no-store', 'Retry-After': '60' },
+        });
       }
     }
     if (htmlAsset) {
@@ -166,6 +191,8 @@ export default {
     }
     const copyResponse = await siteCopyRoute(request, env);
     if (copyResponse) return copyResponse;
+    const backupResponse = await backupsRoute(request, env);
+    if (backupResponse) return backupResponse;
     const emailResponse = await commentEmailRoute(request, env);
     if (emailResponse) return emailResponse;
     const qqResponse = await qqAdminRoute(request, env);

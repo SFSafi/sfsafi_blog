@@ -1,0 +1,51 @@
+---
+import Admin from '../../layouts/Admin.astro';
+---
+
+<Admin title="备份与导入">
+  <section class="page-heading">
+    <h1>
+      把记录<span>留一份。</span>
+    </h1>
+    <p>下载写作备份；需要找回文字时，先恢复为新草稿，再检查发布。</p>
+  </section>
+  <section class="editor-panel">
+    <p id="backup-status" role="status">
+      正在验证站主身份…
+    </p>
+    <fieldset id="backup-controls" disabled>
+      <h2>导出写作备份</h2>
+      <p>
+        包含所有文章与动态（含草稿和回收站）、网站文案及个人文字资料。媒体文件、评论、统计与邮箱订阅不包含在这份备份中。
+      </p>
+      <button type="button" id="backup-export">
+        下载 JSON 备份
+      </button>
+      <hr />
+      <h2>从备份恢复文字</h2>
+      <label>
+        选择备份文件
+        <input id="backup-file" type="file" accept="application/json,.json" />
+      </label>
+      <p>
+        每次选择一篇内容，恢复为新的私有草稿。原内容保留，恢复只包含文字字段；媒体附件、网站文案与资料不会自动恢复。
+      </p>
+      <label>
+        选择要恢复的内容
+        <select id="backup-post" disabled>
+          <option value="">先选择备份文件</option>
+        </select>
+      </label>
+      <div id="backup-preview" data-user-content hidden></div>
+      <button type="button" id="backup-restore" disabled>
+        恢复为新草稿
+      </button>
+      <a id="backup-open" class="text-link" hidden>
+        打开恢复的草稿 →
+      </a>
+    </fieldset>
+  </section>
+  <script>
+    import '../../lib/backup-client';
+  </script>
+</Admin>

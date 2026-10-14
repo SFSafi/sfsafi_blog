@@ -45,10 +45,20 @@ export interface Profile {
   location: string;
 }
 export interface ContentRepository {
+  listPublishedLinks(
+    page: number,
+    pageSize: number,
+  ): Promise<{
+    items: { path: string; updatedAt: string }[];
+    hasMore: boolean;
+  }>;
+  getRelatedPublished(post: Post, limit: number): Promise<Post[]>;
   listPublished(options: {
     page: number;
     pageSize: number;
     kind?: Post['kind'];
+    media?: boolean;
+    order?: 'newest';
     tag?: string;
     location?: string;
   }): Promise<{ items: Post[]; hasMore: boolean }>;
@@ -193,13 +203,42 @@ const published = () =>
         Date.parse(b.firstPublishedAt!) - Date.parse(a.firstPublishedAt!),
     );
 export const repository: ContentRepository = {
-  async listPublished({ page, pageSize, kind, tag, location }) {
+  async listPublishedLinks(page, pageSize) {
+    const list = published(),
+      start = (page - 1) * pageSize;
+    return {
+      items: list
+        .slice(start, start + pageSize)
+        .map((p) => ({ path: p.canonicalPath, updatedAt: p.updatedAt })),
+      hasMore: start + pageSize < list.length,
+    };
+  },
+  async getRelatedPublished(post, limit) {
+    const score = (p: Post) =>
+      p.tags.filter((tag) => post.tags.includes(tag)).length;
+    return published()
+      .filter((p) => p.id !== post.id)
+      .sort(
+        (a, b) =>
+          score(b) - score(a) ||
+          Date.parse(b.firstPublishedAt!) - Date.parse(a.firstPublishedAt!),
+      )
+      .slice(0, limit);
+  },
+  async listPublished({ page, pageSize, kind, tag, location, media, order }) {
     const list = published().filter(
       (p) =>
         (!kind || p.kind === kind) &&
+        (!media || p.media.length > 0) &&
         (!tag || p.tags.includes(tag)) &&
         (!location || p.location?.id === location),
     );
+    if (order === 'newest')
+      list.sort(
+        (a, b) =>
+          Date.parse(b.firstPublishedAt!) - Date.parse(a.firstPublishedAt!) ||
+          a.id.localeCompare(b.id),
+      );
     const start = (page - 1) * pageSize;
     return {
       items: list.slice(start, start + pageSize),

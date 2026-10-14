@@ -1202,3 +1202,395 @@ test('发布事件：真实 D1 + 公开版本确认 + HMAC Bot 接收确认，�
     await f.close();
   }
 });
+
+test('公开发现：RSS 最新 50 条、有效 XML、规范域名、撤回及草稿隔离', async ({
+  browser,
+}) => {
+  const f = await fixture(),
+    page = await browser.newPage();
+  try {
+    await f.dispatch('/rss.xml', undefined, false);
+    const original = (await (
+      await f.dispatch('/api/admin/posts/hello-space')
+    ).json()) as any;
+    const db = await f.mf.getD1Database('DB');
+    const posts = Array.from({ length: 55 }, (_, i) => ({
+      ...original,
+      id: 'post-' + crypto.randomUUID(),
+      title:
+        i === 54 ? '新记录 & <script>安全</script> 🙂\u0001' : '订阅记录 ' + i,
+      body: i === 54 ? '**计算**：2*3 与 `a_b`' : '公开的 *原文*',
+      bodyFormat: i === 54 ? 'markdown' : 'plain',
+      pinned: i === 0,
+      firstPublishedAt: new Date(Date.UTC(2026, 9, 14, 12, i)).toISOString(),
+      updatedAt: new Date(Date.UTC(2026, 9, 14, 12, i)).toISOString(),
+      canonicalPath: '',
+      status: 'published',
+      media: [],
+    }));
+    for (const post of posts) post.canonicalPath = '/posts/' + post.id + '/';
+    const draft = {
+      ...posts[0],
+      id: 'post-' + crypto.randomUUID(),
+      title: 'DRAFT_DISCOVERY_SECRET',
+      tags: ['private-discovery-tag'],
+      status: 'draft',
+    };
+    const trash = {
+      ...posts[1],
+      id: 'post-' + crypto.randomUUID(),
+      title: 'TRASH_DISCOVERY_SECRET',
+      status: 'archived',
+      deletedAt: new Date().toISOString(),
+    };
+    await db.batch(
+      [...posts, draft, trash].map((p) =>
+        db
+          .prepare(
+            'INSERT INTO contents(id,document,status,visibility,revision) VALUES(?,?,?,?,?)',
+          )
+          .bind(p.id, JSON.stringify(p), p.status, 'public', p.revision),
+      ),
+    );
+    await f.dispatch('/api/admin/site-copy', {
+      revision: 0,
+      siteTitle: '慢慢记录 & 笔记',
+      includeAdmin: false,
+      overrides: {},
+    });
+    const rss = await f.dispatch('/rss.xml', undefined, false),
+      xml = await rss.text();
+    expect(rss.headers.get('content-type')).toContain('application/rss+xml');
+    const parsed = await page.evaluate((text) => {
+      const doc = new DOMParser().parseFromString(text, 'application/xml');
+      return {
+        invalid: !!doc.querySelector('parsererror'),
+        title: doc.querySelector('channel > title')?.textContent,
+        items: [...doc.querySelectorAll('item')].map((n) => ({
+          title: n.querySelector('title')?.textContent,
+          link: n.querySelector('link')?.textContent,
+        })),
+      };
+    }, xml);
+    expect(parsed.invalid).toBe(false);
+    expect(parsed.title).toBe('慢慢记录 & 笔记');
+    expect(parsed.items).toHaveLength(50);
+    expect(parsed.items[0].title).toBe('新记录 & <script>安全</script> 🙂');
+    expect(xml).toContain('计算：2*3 与 a_b');
+    expect(parsed.items[0].link).toBe(
+      'https://sfsafi-blog.uk' + posts[54].canonicalPath,
+    );
+    expect(xml).not.toContain(posts[0].id);
+    for (const path of ['/rss.xml', '/sitemap.xml']) {
+      const response = await f.dispatch(path, undefined, false),
+        body = await response.text();
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(body).not.toContain(draft.title);
+      expect(body).not.toContain(trash.title);
+      expect(body).not.toContain('private-discovery-tag');
+    }
+    const sitemap = await (
+      await f.dispatch('/sitemap.xml', undefined, false)
+    ).text();
+    expect(sitemap).toContain(posts[54].canonicalPath);
+    expect(sitemap).not.toContain('/admin/');
+    expect(
+      await (await f.dispatch('/robots.txt', undefined, false)).text(),
+    ).toContain('Sitemap: https://sfsafi-blog.uk/sitemap.xml');
+    expect((await f.dispatch('/rss.xml', {}, false)).status).toBe(405);
+    expect(
+      (
+        await f.dispatch('/api/admin/posts/' + posts[54].id + '/withdraw', {
+          revision: posts[54].revision,
+        })
+      ).status,
+    ).toBe(200);
+    for (const path of ['/rss.xml', '/sitemap.xml'])
+      expect(
+        await (await f.dispatch(path, undefined, false)).text(),
+      ).not.toContain(posts[54].id);
+  } finally {
+    await page.close();
+    await f.close();
+  }
+});
+
+test('社交阅读：分类、目录与进度、真实评论数、分享元数据与手机布局', async ({
+  browser,
+}, testInfo) => {
+  const f = await fixture(),
+    reader = await browser.newContext({
+      hasTouch: true,
+      viewport: { width: 390, height: 844 },
+    });
+  try {
+    const id = 'post-' + crypto.randomUUID();
+    const body =
+      '# 第一段\n\n' +
+      '这是阅读段落，用来检查目录与阅读进度。\n\n'.repeat(35) +
+      '## 第二段\n\n' +
+      '慢慢读，也慢慢写。\n\n'.repeat(35) +
+      '## 第二段\n\n最后的记录。\n\n<script>window.readingInjected=1</script>';
+    await f.dispatch('/api/admin/posts', {
+      id,
+      revision: 0,
+      kind: 'article',
+      title: '长文阅读 <测试>',
+      body,
+      excerpt: '目录、进度与评论入口。',
+      tags: ['reading-fixture'],
+      location: '',
+      pinned: false,
+    });
+    await f.dispatch('/api/admin/posts/' + id + '/publish', { revision: 1 });
+    await routeFixture(reader, f, false);
+    const page = await reader.newPage();
+    await page.goto(base + '/?view=notes');
+    expect(await page.locator('.feed').textContent()).not.toContain('长文阅读');
+    await page.getByRole('link', { name: '图片与视频', exact: true }).click();
+    const cards = page.locator('.feed .post-card');
+    expect(await cards.count()).toBeGreaterThan(0);
+    for (const card of await cards.all())
+      expect(
+        await card.locator('img[data-media-image],video').count(),
+      ).toBeGreaterThan(0);
+    await page.goto(base + '/posts/' + id + '/');
+    await expect(page.locator('.article-toc a')).toHaveCount(3);
+    expect(
+      await page
+        .locator('.post-body [id]')
+        .evaluateAll((nodes) => new Set(nodes.map((n) => n.id)).size),
+    ).toBe(3);
+    expect(await page.evaluate(() => 'readingInjected' in window)).toBe(false);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      'https://sfsafi-blog.uk/posts/' + id + '/',
+    );
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      'content',
+      '长文阅读 <测试> · SFSafi 的个人空间',
+    );
+    const structured = JSON.parse(
+      (await page
+        .locator('script[type="application/ld+json"]')
+        .textContent()) || '{}',
+    );
+    expect(structured.headline).toBe('长文阅读 <测试>');
+    expect(structured['@type']).toBe('BlogPosting');
+    await page.locator('.article-toc a').last().click();
+    await expect(page).toHaveURL(/#content-heading-3$/);
+    await expect
+      .poll(() =>
+        page
+          .locator('[data-reading-progress]')
+          .evaluate((node: HTMLProgressElement) => node.value),
+      )
+      .toBeGreaterThan(50);
+    await expect(page.locator('[data-comment-count]')).toHaveText('0');
+    await page.getByRole('link', { name: '评论 0', exact: true }).click();
+    await expect(page.locator('#comments')).toBeInViewport();
+    await page.getByLabel('昵称', { exact: true }).fill('阅读者');
+    await page.getByLabel('评论', { exact: true }).fill('新的阅读体验');
+    await page.getByRole('button', { name: '提交评论', exact: true }).click();
+    await expect(page.locator('[data-comment-count]')).toHaveText('1');
+    const comments = (await (
+      await f.dispatch('/api/admin/comments')
+    ).json()) as any;
+    await f.dispatch('/api/admin/comments/reply', {
+      parentId: comments.items[0].id,
+      body: '谢谢来读',
+      clientId: crypto.randomUUID(),
+    });
+    const stats = async () =>
+      (
+        (await (
+          await f.dispatch('/api/engagement?ids=' + id, undefined, false)
+        ).json()) as any
+      )[0].comments;
+    expect(await stats()).toBe(2);
+    await f.dispatch('/api/admin/comments', {
+      id: comments.items[0].id,
+      revision: 1,
+      status: 'deleted',
+    });
+    expect(await stats()).toBe(0);
+    for (const route of ['/?view=media', '/posts/' + id + '/', '/subscribe/']) {
+      await page.goto(base + route);
+      for (const width of [360, 390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          route + ' ' + width,
+        ).toBe(true);
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(base + '/posts/afternoon-walk/');
+    await page.locator('[data-image]').first().click();
+    await expect(page.locator('#full-image')).toBeVisible();
+    await expect
+      .poll(() =>
+        page
+          .locator('#full-image')
+          .evaluate((image: HTMLImageElement) => image.naturalWidth),
+      )
+      .toBeGreaterThan(0);
+    const box = (await page.locator('#full-image').boundingBox())!;
+    const touch = await page.context().newCDPSession(page);
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [
+        { x: box.x + box.width * 0.7, y: box.y + box.height * 0.5 },
+      ],
+    });
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [
+        { x: box.x + box.width * 0.3, y: box.y + box.height * 0.5 },
+      ],
+    });
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+    await expect(page.locator('#image-caption')).toHaveText(/^2 \/ /);
+    await page.keyboard.press('Escape');
+    await touch.detach();
+    await page.goto(base + '/');
+    await page.screenshot({
+      path: testInfo.outputPath('social-feed-mobile.png'),
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto(base + '/posts/' + id + '/');
+    await page.screenshot({
+      path: testInfo.outputPath('reading-desktop.png'),
+      fullPage: true,
+    });
+  } finally {
+    await reader.unrouteAll({ behavior: 'wait' });
+    await reader.close();
+    await f.close();
+  }
+});
+
+test('写作备份：仅站主下载、含草稿/回收站、安全恢复新草稿与原记录保留', async ({
+  browser,
+}, testInfo) => {
+  const f = await fixture(),
+    owner = await browser.newContext();
+  try {
+    expect(
+      (await f.dispatch('/api/admin/backups/export', undefined, false)).status,
+    ).toBe(401);
+    expect(
+      (await f.dispatch('/api/admin/backups/export', undefined, f.other))
+        .status,
+    ).toBe(403);
+    const id = 'post-' + crypto.randomUUID();
+    await f.dispatch('/api/admin/posts', {
+      id,
+      revision: 0,
+      title: 'PRIVATE_BACKUP_TEXT',
+      body: '包含私有的草稿文字',
+      kind: 'article',
+      excerpt: '',
+      tags: [],
+      location: '',
+      pinned: false,
+    });
+    const sample = (await (
+      await f.dispatch('/api/admin/posts/hello-space')
+    ).json()) as any;
+    await f.dispatch('/api/admin/posts/hello-space/delete', {
+      revision: sample.revision,
+      confirm: true,
+    });
+    await routeFixture(owner, f);
+    const page = await owner.newPage();
+    await page.goto(base + '/admin/backups/');
+    await expect(page.locator('#backup-controls')).toBeEnabled();
+    const download = page.waitForEvent('download');
+    await page
+      .getByRole('button', { name: '下载 JSON 备份', exact: true })
+      .click();
+    const file = await download;
+    const saved = testInfo.outputPath('writing-archive.json');
+    await file.saveAs(saved);
+    const archive = JSON.parse(readFileSync(saved, 'utf8'));
+    expect(archive.format).toBe('sfsafi-writing-archive');
+    expect(
+      archive.posts.some((p: any) => p.id === id && p.status === 'draft'),
+    ).toBe(true);
+    expect(
+      archive.posts.find((p: any) => p.id === 'hello-space').deletedAt,
+    ).toBeTruthy();
+    expect(archive).not.toHaveProperty('comment_email_contacts');
+    await page.locator('#backup-file').setInputFiles(saved);
+    await expect(page.locator('#backup-status')).toContainText('已读取');
+    await page
+      .locator('#backup-post')
+      .selectOption(
+        String(archive.posts.findIndex((p: any) => p.id === 'hello-space')),
+      );
+    await page
+      .getByRole('button', { name: '恢复为新草稿', exact: true })
+      .click();
+    await expect(page.locator('#backup-status')).toContainText(
+      '已恢复为新草稿',
+    );
+    const restoredId = new URL(
+      (await page.locator('#backup-open').getAttribute('href')) || '',
+      base,
+    ).searchParams.get('id')!;
+    expect(restoredId).not.toBe('hello-space');
+    const restored = (await (
+      await f.dispatch('/api/admin/posts/' + restoredId)
+    ).json()) as any;
+    expect(restored.status).toBe('draft');
+    expect(restored.bodyFormat).toBe('plain');
+    expect(restored.body).toBe(sample.body);
+    expect(restored.media).toEqual([]);
+    expect(
+      (await f.dispatch('/posts/' + restoredId + '/', undefined, false)).status,
+    ).toBe(404);
+    expect((await f.dispatch('/api/admin/posts/hello-space')).status).toBe(200);
+    expect(
+      ((await (await f.dispatch('/api/admin/posts/hello-space')).json()) as any)
+        .deletedAt,
+    ).toBeTruthy();
+    expect(
+      await (await f.dispatch('/rss.xml', undefined, false)).text(),
+    ).not.toContain('PRIVATE_BACKUP_TEXT');
+    await page.locator('#backup-file').setInputFiles({
+      name: 'bad.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{"format":"foreign","posts":[]}'),
+    });
+    await expect(page.locator('#backup-status')).toContainText(
+      '请选择本站导出',
+    );
+    await expect(page.locator('#backup-restore')).toBeDisabled();
+    await page.setViewportSize({ width: 360, height: 800 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await f.restart();
+    expect(
+      (
+        (await (
+          await f.dispatch('/api/admin/posts/' + restoredId)
+        ).json()) as any
+      ).status,
+    ).toBe('draft');
+  } finally {
+    await owner.unrouteAll({ behavior: 'wait' });
+    await owner.close();
+    await f.close();
+  }
+});

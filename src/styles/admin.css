@@ -231,3 +231,38 @@
   overflow-wrap: anywhere;
   font-weight: 700;
 }
+#backup-controls {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+#backup-controls h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+#backup-controls p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 14px 0;
+  line-height: 1.8;
+}
+#backup-controls hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 26px 0;
+}
+#backup-preview {
+  max-height: 300px;
+  overflow: auto;
+  background: var(--soft);
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+#backup-preview p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.admin-backup-link {
+  margin-top: 24px;
+}

@@ -24,6 +24,9 @@ const { postId, detail = false } = Astro.props as {
         <span aria-hidden="true">↓</span> 踩 <span data-dislikes>—</span>
       </button>
     </div>
+    <a class="comment-shortcut" href={`/posts/${postId}/#comments`}>
+      评论 <span data-comment-count>—</span>
+    </a>
   </div>
   <p class="engagement-status" aria-live="polite">
     <span data-status>正在加载统计…</span>{' '}

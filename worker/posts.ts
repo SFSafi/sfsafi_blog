@@ -53,10 +53,9 @@ export async function postsRoute(
       }
       if (query) {
         filters.push(
-          "(json_extract(document,'$.title') LIKE ? ESCAPE '\\' OR json_extract(document,'$.body') LIKE ? ESCAPE '\\')",
+          "(INSTR(LOWER(COALESCE(json_extract(document,'$.title'),'')),LOWER(?))>0 OR INSTR(LOWER(json_extract(document,'$.body')),LOWER(?))>0)",
         );
-        const pattern = '%' + query.replace(/[\\%_]/g, '\\$&') + '%';
-        args.push(pattern, pattern);
+        args.push(query, query);
       }
       const rows = await env.DB.prepare(
         `SELECT document FROM contents WHERE ${filters.join(' AND ')} ORDER BY json_extract(document,'$.updatedAt') DESC,id LIMIT 21 OFFSET ?`,
@@ -154,6 +153,8 @@ export async function postsRoute(
         typeof body.title !== 'string' ||
         [...body.title.trim()].length > 120 ||
         typeof body.body !== 'string' ||
+        (body.bodyFormat !== undefined &&
+          !['plain', 'markdown'].includes(body.bodyFormat)) ||
         [...body.body].length > 20000 ||
         !body.body.trim() ||
         !['note', 'article'].includes(body.kind) ||
@@ -181,7 +182,7 @@ export async function postsRoute(
         id,
         title: body.title.trim(),
         body: body.body,
-        bodyFormat: 'markdown',
+        bodyFormat: body.bodyFormat || 'markdown',
         kind: body.kind,
         excerpt: body.excerpt,
         tags: [...new Set(body.tags.map((t: string) => t.trim()))] as string[],

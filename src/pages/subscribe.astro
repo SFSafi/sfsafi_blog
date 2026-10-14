@@ -1,0 +1,55 @@
+---
+import Base from '../layouts/Base.astro';
+import { PRIMARY_SITE_ORIGIN } from '../lib/site';
+---
+
+<Base title="订阅更新" description="把这里的新记录带到你的阅读器中。">
+  <section class="page-heading">
+    <div class="eyebrow">KEEP IN TOUCH</div>
+    <h1>
+      下次更新，<span>也来看看。</span>
+    </h1>
+    <p>用你喜欢的阅读器订阅，新记录会出现在你的订阅列表里。</p>
+  </section>
+  <section class="about-card">
+    <h2>RSS 订阅</h2>
+    <p>
+      复制下面的地址，添加到支持 RSS
+      的阅读器。订阅内容包含最近的公开动态与文章摘要，点开即可阅读全文。
+    </p>
+    <label for="rss-url">订阅地址</label>
+    <input
+      id="rss-url"
+      type="url"
+      value={`${PRIMARY_SITE_ORIGIN}/rss.xml`}
+      readonly
+      style="width:100%;padding:12px;margin:12px 0;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:8px;"
+    />
+    <div class="subscription-actions">
+      <button type="button" id="copy-rss">
+        复制订阅地址
+      </button>
+      <a href="/rss.xml">打开 RSS ↗</a>
+    </div>
+    <p role="status" id="rss-status"></p>
+    <hr />
+    <p>只订阅公开内容。你可以随时在阅读器里取消订阅。</p>
+    <a class="text-link" href="/">
+      继续逛逛 →
+    </a>
+  </section>
+  <script>
+    const input = document.querySelector<HTMLInputElement>('#rss-url')!,
+      status = document.querySelector('#rss-status')!;
+    document.querySelector('#copy-rss')!.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(input.value);
+        status.textContent = '订阅地址已复制。';
+      } catch {
+        input.focus();
+        input.select();
+        status.textContent = '请手动复制上面的订阅地址。';
+      }
+    });
+  </script>
+</Base>

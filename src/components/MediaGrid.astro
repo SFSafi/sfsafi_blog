@@ -4,7 +4,11 @@ const { media } = Astro.props as { media: Media[] };
 ---
 
 {media.length > 0 && (
-  <div class:list={['media-grid', { single: media.length === 1 }]} data-gallery>
+  <div
+    class:list={['media-grid', { single: media.length === 1 }]}
+    data-gallery
+    data-image-count={media.filter((m) => m.kind === 'image').length}
+  >
     {media.map((item) =>
       item.kind === 'image' ? (
         <div class="image-wrap">

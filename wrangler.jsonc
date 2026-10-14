@@ -5,7 +5,10 @@
   // AI_DAILY_LIMIT are dashboard variables; preserve them across Git builds.
   "keep_vars": true,
   "main": "worker/index.ts",
-  "vars": { "OWNER_EMAIL": "jonce_z@126.com" },
+  "vars": {
+    "OWNER_EMAIL": "jonce_z@126.com",
+    "PUBLIC_SITE_URL": "https://sfsafi-blog.uk",
+  },
   "triggers": { "crons": ["*/5 * * * *"] },
   "compatibility_date": "2026-06-01",
   "assets": {

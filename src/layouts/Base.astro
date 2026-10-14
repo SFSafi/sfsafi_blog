@@ -1,13 +1,16 @@
 ---
 import '../styles/global.css';
+import '../styles/reading.css';
 import 'misans/lib/Normal/MiSans-Medium.min.css';
 import { repository } from '../lib/content';
+import { PRIMARY_SITE_ORIGIN } from '../lib/site';
 const {
   title = '动态',
   description = 'SFSafi 的个人空间。记录生活与工程笔记。',
 } = Astro.props;
 const profile = await repository.getProfile();
 const path = Astro.url.pathname;
+const canonical = new URL(path, PRIMARY_SITE_ORIGIN).href;
 ---
 
 <!doctype html>
@@ -17,6 +20,25 @@ const path = Astro.url.pathname;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#f5f6f4" />
+    <link rel="canonical" href={canonical} />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="RSS 订阅"
+      href={`${PRIMARY_SITE_ORIGIN}/rss.xml`}
+    />
+    <meta property="og:title" content={`${title} · SFSafi 的个人空间`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="SFSafi 的个人空间" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={`${title} · SFSafi 的个人空间`} />
+    <meta name="twitter:description" content={description} />
+    {(path.startsWith('/404') || path === '/search/') && (
+      <meta name="robots" content="noindex,follow" />
+    )}
     <title>{title} · SFSafi 的个人空间</title>
     <link rel="icon" href="/favicon.svg" />
     <script is:inline>
@@ -118,6 +140,9 @@ const path = Astro.url.pathname;
               © 2026 <span data-profile-name>SFSafi</span> · Built with Astro
             </span>
           </p>
+          <a class="subscription-link" href="/subscribe/">
+            订阅更新 ↗
+          </a>
         </div>
       </aside>
       <div class="main-column">
@@ -134,6 +159,7 @@ const path = Astro.url.pathname;
           <span>就写到这里，下次见。</span>
           <span>✳</span>
           <a href="/about/">关于这个空间 ↗</a>
+          <a href="/subscribe/">订阅更新 ↗</a>
         </footer>
       </div>
     </div>
@@ -157,6 +183,7 @@ const path = Astro.url.pathname;
     </dialog>
     <script>
       import '../lib/site-copy-client';
+      import '../lib/reading-client';
       import '../lib/profile-client';
       const theme = document.querySelector<HTMLSelectElement>('#theme')!;
       theme.value = document.documentElement.dataset.theme || 'system';
@@ -216,6 +243,34 @@ const path = Astro.url.pathname;
         if (event.key === 'ArrowLeft') move(-1);
         if (event.key === 'ArrowRight') move(1);
       });
+      let touchStart: { x: number; y: number } | null = null;
+      dialog.addEventListener(
+        'touchstart',
+        (event) => {
+          const point =
+            event.touches.length === 1 &&
+            (event.target as Element)?.id === 'full-image'
+              ? event.touches[0]
+              : null;
+          touchStart = point ? { x: point.clientX, y: point.clientY } : null;
+        },
+        { passive: true },
+      );
+      dialog.addEventListener(
+        'touchend',
+        (event) => {
+          const start = touchStart;
+          touchStart = null;
+          if (!start || images.length < 2 || event.changedTouches.length !== 1)
+            return;
+          const point = event.changedTouches[0],
+            dx = point.clientX - start.x,
+            dy = point.clientY - start.y;
+          if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5)
+            move(dx < 0 ? 1 : -1);
+        },
+        { passive: true },
+      );
       dialog.addEventListener('click', (event) => {
         if (event.target === dialog) dialog.close();
       });

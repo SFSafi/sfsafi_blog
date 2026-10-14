@@ -5,6 +5,7 @@ interface Stats {
   likes: number;
   dislikes: number;
   myVote: -1 | 0 | 1;
+  comments: number;
 }
 const sections = Array.from(
   document.querySelectorAll<HTMLElement>('[data-engagement]'),
@@ -34,6 +35,8 @@ function render(value: Stats) {
     section.querySelector('[data-dislikes]')!.textContent = formatter.format(
       value.dislikes,
     );
+    const comments = section.querySelector('[data-comment-count]');
+    if (comments) comments.textContent = formatter.format(value.comments || 0);
     for (const button of section.querySelectorAll<HTMLButtonElement>(
       '[data-vote]',
     )) {
@@ -164,3 +167,4 @@ document.addEventListener('visibilitychange', () => {
       void recordView(section.dataset.postId!);
 });
 void load();
+document.addEventListener('comments-updated', () => void load());

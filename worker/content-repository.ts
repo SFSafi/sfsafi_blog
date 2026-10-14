@@ -61,9 +61,35 @@ export async function withLocations(db: D1Database, posts: Post[]) {
 export function contentRepository(db?: D1Database): ContentRepository {
   if (!db) return samples;
   return {
-    async listPublished({ page, pageSize, kind, tag, location }) {
+    async listPublishedLinks(page, pageSize) {
+      const rows = await db
+        .prepare(
+          "SELECT json_extract(document,'$.canonicalPath') AS path,json_extract(document,'$.updatedAt') AS updatedAt FROM contents WHERE status='published' AND visibility='public' ORDER BY id LIMIT ? OFFSET ?",
+        )
+        .bind(pageSize + 1, (page - 1) * pageSize)
+        .all<{ path: string; updatedAt: string }>();
+      return {
+        items: rows.results.slice(0, pageSize),
+        hasMore: rows.results.length > pageSize,
+      };
+    },
+    async getRelatedPublished(post, limit) {
+      const rows = await db
+        .prepare(
+          "SELECT document FROM contents c WHERE status='published' AND visibility='public' AND id<>? ORDER BY (SELECT COUNT(*) FROM json_each(c.document,'$.tags') t WHERE t.value IN (SELECT value FROM json_each(?))) DESC,json_extract(document,'$.firstPublishedAt') DESC,id LIMIT ?",
+        )
+        .bind(
+          post.id,
+          JSON.stringify(post.tags),
+          Math.max(0, Math.min(3, limit)),
+        )
+        .all<{ document: string }>();
+      return rows.results.map((row) => JSON.parse(row.document) as Post);
+    },
+    async listPublished({ page, pageSize, kind, tag, location, media, order }) {
       const conditions = ["status='published'", "visibility='public'"];
       const args: (string | number)[] = [];
+      if (media) conditions.push("json_array_length(document,'$.media')>0");
       if (kind) {
         conditions.push("json_extract(document,'$.kind')=?");
         args.push(kind);
@@ -82,7 +108,7 @@ export function contentRepository(db?: D1Database): ContentRepository {
       }
       const result = await db
         .prepare(
-          `SELECT document FROM contents WHERE ${conditions.join(' AND ')} ORDER BY json_extract(document,'$.pinned') DESC, json_extract(document,'$.firstPublishedAt') DESC, id LIMIT ? OFFSET ?`,
+          `SELECT document FROM contents WHERE ${conditions.join(' AND ')} ORDER BY ${order === 'newest' ? '' : "json_extract(document,'$.pinned') DESC,"} json_extract(document,'$.firstPublishedAt') DESC, id LIMIT ? OFFSET ?`,
         )
         .bind(...args, pageSize + 1, (page - 1) * pageSize)
         .all<{ document: string }>();

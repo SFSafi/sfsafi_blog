@@ -133,6 +133,7 @@ for (const section of document.querySelectorAll<HTMLElement>(
       const data = await response.json();
       if (!response.ok) throw Error(data.error || '提交失败。');
       if (data.item) appendComment(data.item);
+      document.dispatchEvent(new Event('comments-updated'));
       body.value = '';
       email.value = '';
       attempted = false;

@@ -11,6 +11,8 @@ declare const HTMLRewriter: { new (): CopyRewriter };
 import { createCopyTranslator } from '../src/lib/copy-text';
 import { requireOwner, json, type OwnerEnv } from './owner';
 import { readLimitedText, BodyTooLargeError } from './http';
+import { publicProfile } from './profile';
+import { siteOrigin, type SiteConfig } from '../src/lib/site';
 export interface SiteCopy {
   siteTitle: string;
   includeAdmin: boolean;
@@ -140,7 +142,7 @@ const voidTags = new Set([
 ]);
 export async function applySiteCopy(
   request: Request,
-  env: OwnerEnv,
+  env: OwnerEnv & SiteConfig,
   response: Response,
 ) {
   if (
@@ -150,6 +152,9 @@ export async function applySiteCopy(
   )
     return response;
   const { settings, revision } = await getSiteCopy(env);
+  const siteTitle = revision
+    ? settings.siteTitle
+    : `${(await publicProfile(env)).name} 的个人空间`;
   const allowed = new Map(catalog.map((entry) => [entry.id, entry]));
   const admin = new URL(request.url).pathname.startsWith('/admin/');
   const enabled =
@@ -178,7 +183,7 @@ export async function applySiteCopy(
   const config = JSON.stringify({
     overrides: values,
     includeAdmin: settings.includeAdmin,
-    siteTitle: settings.siteTitle,
+    siteTitle,
     configured: revision > 0,
   }).replace(/</g, '\\u003c');
   return new HTMLRewriter()
@@ -196,7 +201,51 @@ export async function applySiteCopy(
           previousTitle = inTitle,
           tag = el.tagName;
         if (el.hasAttribute('data-site-title') && revision > 0)
-          el.setInnerContent(settings.siteTitle);
+          el.setInnerContent(siteTitle);
+        if (tag === 'link' && el.getAttribute('rel') === 'canonical') {
+          const href = el.getAttribute('href');
+          if (href) {
+            const link = new URL(href);
+            el.setAttribute(
+              'href',
+              siteOrigin(env) + link.pathname + link.search,
+            );
+          }
+        }
+        if (tag === 'link' && el.getAttribute('type') === 'application/rss+xml')
+          el.setAttribute('href', siteOrigin(env) + '/rss.xml');
+        if (el.getAttribute('id') === 'rss-url')
+          el.setAttribute('value', siteOrigin(env) + '/rss.xml');
+        if (tag === 'meta') {
+          const name = el.getAttribute('property') || el.getAttribute('name');
+          let value = el.getAttribute('content');
+          if (name === 'og:site_name') el.setAttribute('content', siteTitle);
+          if (name === 'og:url' && value) {
+            const link = new URL(value);
+            el.setAttribute(
+              'content',
+              siteOrigin(env) + link.pathname + link.search,
+            );
+          }
+          if (
+            ['og:title', 'twitter:title'].includes(name || '') &&
+            value?.endsWith(' · SFSafi 的个人空间')
+          ) {
+            const prefix = value.slice(0, -' · SFSafi 的个人空间'.length);
+            value =
+              (enabled && !content ? translate(prefix) : prefix) +
+              ' · ' +
+              siteTitle;
+            el.setAttribute('content', value);
+          }
+          if (
+            !content &&
+            ['og:description', 'twitter:description'].includes(name || '') &&
+            value &&
+            enabled
+          )
+            el.setAttribute('content', translate(value));
+        }
         const classes = (el.getAttribute('class') || '').split(/\s+/);
         const protectedNode =
           ['script', 'style', 'textarea', 'code', 'pre', 'time'].includes(
@@ -264,7 +313,7 @@ export async function applySiteCopy(
             translated =
               (enabled && !content ? translate(prefix) : prefix) +
               ' · ' +
-              settings.siteTitle;
+              siteTitle;
           }
         }
         if (translated === decode(buffer)) text.replace(buffer, { html: true });

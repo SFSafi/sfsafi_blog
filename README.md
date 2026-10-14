@@ -30,6 +30,8 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/sfsafi-browsers npm run test:e2e
 - `/posts/{id}/` 稳定详情链接，文章也沿用该路径。
 - `/articles/` 长文；`/tags/` 标签；`/tags/{tag}/` 分类；`/about/` 关于我；`/404.html` 未找到页面。
 - `/admin/` 管理中心；`/admin/posts/` 文章与动态（包括回收站）；`/admin/write/` 写文；`/admin/site/` 网站文案。使用步骤见 [后台说明](docs/admin.md)。
+- `/subscribe/` RSS 订阅；`/rss.xml` 最近 50 条公开记录；`/sitemap.xml` 站点地图。信息流可切换短动态/图片视频/长文，长文支持目录、阅读进度和相关文章，见 [阅读与订阅](docs/reading-and-discovery.md)。
+- `/admin/backups/` 写作备份下载与单篇文字恢复为新草稿；不覆盖原内容，详见 [backup.md](docs/backup.md)。
 
 三种主题与系统模式；只把主题偏好存入 localStorage。图片组用方形缩略图，单图保留比例；弹窗原图完整展示，支持键盘、关闭与焦点归还。视频不自动播放、preload=none，失败支持重试。
 

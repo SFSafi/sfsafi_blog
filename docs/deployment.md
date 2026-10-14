@@ -64,3 +64,7 @@ worker 验证 Cf-Access-Jwt-Assertion 的 RS256 签名、issuer、audience、有
 ## 8. 统一后台与网站文案
 
 `/admin/site/` 的设置存入 D1 新增 site_settings 表，0008 迁移自动建立；保留现有数据，无需创建额外服务。`npm run build` 自动收集默认文案，生成 src/lib/copy-catalog.json，Worker 在输出 HTML 时应用设置，浏览器同步替换动态提示。保存文案或已发布文章不需要 Git 部署；静态构建单独部署不会拥有持久管理能力。所有设置写入仍需 Access + OWNER_EMAIL 与同源校验。详见 [admin.md](admin.md)。
+
+## 9. 阅读发现、RSS 与写作备份
+
+新增 `/subscribe/`、`/rss.xml`、`/sitemap.xml`、`/robots.txt` 和 `/admin/backups/`，复用现有 Worker/D1，无新增迁移或服务。PUBLIC_SITE_URL 已在生产配置填写 https://sfsafi-blog.uk，控制规范链接与公开订阅，不覆盖原 SITE_URL。相关公开接口与页面由 Worker 读取已发布内容；静态资源仍 asset-first。部署后检查分类入口、RSS/站点地图 XML、订阅页，以及后台与导出接口的未登录拒绝。详情见 [reading-and-discovery.md](reading-and-discovery.md)、[backup.md](backup.md)。

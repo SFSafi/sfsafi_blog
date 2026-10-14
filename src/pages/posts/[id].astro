@@ -14,6 +14,7 @@ export async function getStaticPaths() {
   return posts.map((post) => ({ params: { id: post.id }, props: { post } }));
 }
 const { post } = Astro.props;
+const related = await repository.getRelatedPublished(post, 3);
 ---
 
 <Base
@@ -28,6 +29,18 @@ const { post } = Astro.props;
     <p>记录是让瞬间多停留一会儿。</p>
   </div>
   <PostCard post={post} detail />
+  {related.length > 0 && (
+    <section class="related-posts">
+      <h2>接着读一段。</h2>
+      <div class="related-grid" data-user-content>
+        {related.map((p) => (
+          <a href={p.canonicalPath}>
+            <strong>{p.title || p.body.slice(0, 45)}</strong>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
   <div class="end-note">
     — {post.kind === 'article' ? '全文完' : '这就是这一刻'} —
     <p>示例内容 · 评论功能将在后续阶段开放</p>
