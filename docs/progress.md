@@ -112,3 +112,5 @@ PR #3 已合入 stage-a，main 同步；GitHub 推送/PR/合并检查与 Cloudfl
 - 0008 仅新增 site_settings；所有管理写入继续真实 Access JWT + 唯一站主邮箱 + 同源/版本校验，未改变现有统计、资料与评论表。
 
 本地 34 项完整 Playwright 通过，类型检查零错误/警告/提示、双 Worker dry-run 成功；新增真实本地 Workerd/D1 的发布后修改/删除/恢复/重启、权限与冲突、文案安全/内容隔离，以及 Chromium 后台实际操作、动态提示文案和 360/390/768/1440 四种宽度检查。Access 使用受控签名令牌，不代表真实站主邮箱登录；本轮没有修改或删除生产文章。此变更通过站主已连接的 stage-a 自动部署，线上验收检查公开首页/关于页及未登录管理拒绝，不代替真实邮箱登录。操作见 [admin.md](admin.md)。
+
+Cloudflare 新版构建成功，线上首页/关于页/搜索页返回 200 并加载站点文案配置，管理中心/文案/内容页重定向至 Access 登录；备用域名管理 API 对未登录返回 401，文案表单锁定。首次 GitHub 验证的业务断言全部通过，最后截图因写死云环境 /workspace 路径失败；已改为 Playwright 的 testInfo.outputPath，适配不同 runner 的输出目录。

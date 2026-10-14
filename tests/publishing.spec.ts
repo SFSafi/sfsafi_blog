@@ -361,7 +361,7 @@ test('站点文案：私有写权限、即时静态/动态页面、安全文字�
 });
 test('统一后台浏览器：直接发布、编辑、删除/恢复、文案保存及手机布局', async ({
   browser,
-}) => {
+}, testInfo) => {
   const f = await fixture();
   const owner = await browser.newContext(),
     reader = await browser.newContext();
@@ -461,7 +461,7 @@ test('统一后台浏览器：直接发布、编辑、删除/恢复、文案保�
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.goto(base + '/admin/posts/');
     await page.screenshot({
-      path: '/workspace/sfsafi-admin-rebuilt.png',
+      path: testInfo.outputPath('admin-rebuilt.png'),
       fullPage: true,
     });
   } finally {
