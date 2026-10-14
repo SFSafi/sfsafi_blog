@@ -1,5 +1,5 @@
 ---
-import Base from '../../layouts/Base.astro';
+import Base from '../../layouts/Admin.astro';
 ---
 
 <Base title="评论管理">
@@ -92,6 +92,8 @@ import Base from '../../layouts/Base.astro';
                 ? '已删除'
                 : '已隐藏');
           body.textContent = c.body;
+          name.setAttribute('data-user-content', '');
+          body.setAttribute('data-user-content', '');
           link.href = '/posts/' + encodeURIComponent(c.post_id) + '/';
           link.textContent = '查看关联内容';
           item.append(name, body, link);

@@ -1,6 +1,6 @@
 # SFSafi 的个人空间
 
-Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍含样例。新增 D1 文字写文、草稿/发布/撤回与评论直接公开/站主管理；管理员需配置 Cloudflare Access，写文和评论管理再次核对唯一站主邮箱。独立 QQ Bot 已准备部署，但尚无真实账号凭据。新增 /search/ 站内搜索支持关键词和由站主配置的 OpenAI 兼容 AI 接口，配置见 docs/ai-search.md。
+Astro + TypeScript，手机优先的 SNS 风格个人空间。当前内容仍含样例。统一管理中心 `/admin/` 提供站点文案编辑、文章与动态的发布/修改/删除/回收站，以及资料、评论、地点、转码和通知管理。内容与设置持久保存在 D1；写入需真实 Cloudflare Access 与唯一站主邮箱验证。独立 QQ Bot 已准备部署，但尚无真实账号凭据。`/search/` 支持关键词和由站主配置的 OpenAI 兼容 AI 接口，配置见 docs/ai-search.md。
 
 ## 云端开发
 
@@ -29,12 +29,13 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/sfsafi-browsers npm run test:e2e
 - `/page/2/` 更早的记录；数据增加时自动生成更多页。
 - `/posts/{id}/` 稳定详情链接，文章也沿用该路径。
 - `/articles/` 长文；`/tags/` 标签；`/tags/{tag}/` 分类；`/about/` 关于我；`/404.html` 未找到页面。
+- `/admin/` 管理中心；`/admin/posts/` 文章与动态（包括回收站）；`/admin/write/` 写文；`/admin/site/` 网站文案。使用步骤见 [后台说明](docs/admin.md)。
 
 三种主题与系统模式；只把主题偏好存入 localStorage。图片组用方形缩略图，单图保留比例；弹窗原图完整展示，支持键盘、关闭与焦点归还。视频不自动播放、preload=none，失败支持重试。
 
 ## 文档
 
-[需求](docs/requirements.md) · [架构](docs/architecture.md) · [进度](docs/progress.md) · [部署](docs/deployment.md) · [运维](docs/operations.md) · [媒体和字体来源](docs/licenses.md) · [媒体上传需求](docs/media-upload.md) · [写文与评论](docs/writing.md) · [QQ Bot 部署](docs/qq-bot.md) · [原后续范围](docs/next-features.md)
+[需求](docs/requirements.md) · [架构](docs/architecture.md) · [进度](docs/progress.md) · [部署](docs/deployment.md) · [运维](docs/operations.md) · [后台说明](docs/admin.md) · [媒体和字体来源](docs/licenses.md) · [媒体上传需求](docs/media-upload.md) · [写文与评论](docs/writing.md) · [QQ Bot 部署](docs/qq-bot.md) · [原后续范围](docs/next-features.md)
 
 Bot 单独打包：npm run build:bot。当前总检查需先 build:worker 与 build:bot，再运行 test:e2e；Bot 不用博客的部署配置。
 

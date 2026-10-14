@@ -1,6 +1,7 @@
 import { profileReady } from './profile-client';
 import { locationsReady } from './locations-client';
 import { formatDate } from './date';
+import { interfaceCopy } from './copy-text';
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -153,7 +154,11 @@ for (const section of document.querySelectorAll<HTMLElement>('[data-share]')) {
       ctx.fillStyle = '#69736b';
       ctx.font = '500 20px MiSans, sans-serif';
       if (section.dataset.shareLocation) {
-        ctx.fillText('地点 · ' + section.dataset.shareLocation, 64, y);
+        ctx.fillText(
+          interfaceCopy('地点 · ' + section.dataset.shareLocation),
+          64,
+          y,
+        );
         y += 32;
       }
       const qr = document.createElement('canvas');
@@ -166,7 +171,7 @@ for (const section of document.querySelectorAll<HTMLElement>('[data-share]')) {
       ctx.drawImage(qr, 64, bottom, 180, 180);
       ctx.font = '500 22px MiSans, sans-serif';
       ctx.fillStyle = '#476852';
-      ctx.fillText('扫码，读完整记录', 274, bottom + 35);
+      ctx.fillText(interfaceCopy('扫码，读完整记录'), 274, bottom + 35);
       ctx.font = '500 16px MiSans, sans-serif';
       ctx.fillStyle = '#69736b';
       for (const [index, line] of wrap(ctx, url, 558).entries())

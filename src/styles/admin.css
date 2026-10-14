@@ -1,0 +1,233 @@
+.admin-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  max-width: 1380px;
+  min-height: 100vh;
+  margin: auto;
+}
+.admin-sidebar {
+  padding: 30px 20px;
+  border-right: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow: auto;
+}
+.admin-brand {
+  font-size: 24px;
+  font-weight: 700;
+  display: block;
+}
+.admin-brand span {
+  display: block;
+  font-size: 14px;
+  color: var(--muted);
+}
+.admin-sidebar > p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 18px 0 24px;
+}
+.admin-sidebar nav {
+  display: grid;
+  gap: 6px;
+}
+.admin-sidebar nav a {
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+.admin-sidebar nav a[aria-current='page'] {
+  background: var(--soft);
+  color: var(--accent);
+}
+.admin-return {
+  display: block;
+  margin: 28px 0 22px;
+}
+.admin-sidebar select {
+  display: block;
+  margin-top: 8px;
+  padding: 8px;
+  max-width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.admin-main {
+  min-width: 0;
+  padding: 28px 36px 60px;
+}
+.admin-main .page-heading {
+  padding: 0 0 26px;
+}
+.admin-main .editor-panel {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  margin-bottom: 22px;
+}
+.admin-toolbar,
+.admin-post-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.admin-toolbar input {
+  flex: 1;
+  min-width: 120px;
+}
+.admin-toolbar select {
+  width: auto;
+}
+.admin-post-actions a,
+.admin-post-actions button {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  font: inherit;
+}
+.admin-post-actions .danger {
+  color: #ba3c3c;
+}
+.admin-post-row {
+  display: grid;
+  gap: 10px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.admin-post-row h2 {
+  font-size: 20px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.admin-post-row p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+}
+.admin-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.admin-counts a {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+  background: var(--surface);
+}
+.admin-counts strong {
+  display: block;
+  font-size: 28px;
+}
+.admin-counts span {
+  color: var(--muted);
+  font-size: 14px;
+}
+.admin-quicklinks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.admin-quicklinks a {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px;
+  background: var(--surface);
+}
+.admin-quicklinks strong {
+  display: block;
+  margin-bottom: 8px;
+}
+.admin-quicklinks p {
+  color: var(--muted);
+  margin: 0;
+  font-size: 14px;
+}
+.copy-entry {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.copy-entry small {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+.copy-original {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: var(--soft);
+  border-radius: 7px;
+  font-size: 14px;
+}
+.copy-entry textarea {
+  min-height: 68px;
+}
+.admin-savebar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  z-index: 2;
+}
+@media (max-width: 850px) {
+  .admin-shell {
+    display: block;
+  }
+  .admin-sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 20px;
+  }
+  .admin-sidebar nav {
+    display: flex;
+    overflow: auto;
+    white-space: nowrap;
+  }
+  .admin-sidebar > p {
+    margin: 10px 0;
+  }
+  .admin-sidebar label,
+  .admin-sidebar select {
+    display: none;
+  }
+  .admin-return {
+    margin: 12px 0 0;
+  }
+  .admin-main {
+    padding: 22px 16px 40px;
+  }
+  .admin-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-quicklinks {
+    grid-template-columns: 1fr;
+  }
+  .admin-main .editor-panel {
+    padding: 18px;
+  }
+  .admin-toolbar select {
+    max-width: 100%;
+  }
+}
+
+.admin-brand strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}

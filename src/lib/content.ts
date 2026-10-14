@@ -36,6 +36,7 @@ export interface Post {
   revision: number;
   canonicalPath: string;
   sample?: boolean;
+  deletedAt?: string;
 }
 export interface Profile {
   name: string;

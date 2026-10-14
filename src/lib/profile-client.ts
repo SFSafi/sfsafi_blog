@@ -5,6 +5,7 @@ export interface PublicProfile {
   handle: string;
   avatarUrl: string;
 }
+let previousSiteName = 'SFSafi 的个人空间';
 export async function refreshProfile() {
   try {
     const response = await fetch('/api/profile', {
@@ -14,10 +15,26 @@ export async function refreshProfile() {
     });
     if (!response.ok) return;
     const profile: PublicProfile = await response.json();
-    document.title = `${document.title.split(' · ')[0]} · ${profile.name} 的个人空间`;
+    let siteName = `${profile.name} 的个人空间`;
+    try {
+      const copy = JSON.parse(
+        document.querySelector('#site-copy-config')?.textContent || '{}',
+      );
+      if (copy.configured && copy.siteTitle) siteName = copy.siteTitle;
+    } catch {}
+    let pageTitle = document.title;
+    for (const candidate of [previousSiteName, siteName, 'SFSafi 的个人空间']) {
+      const suffix = ' · ' + candidate;
+      if (pageTitle.endsWith(suffix)) {
+        pageTitle = pageTitle.slice(0, -suffix.length);
+        break;
+      }
+    }
+    document.title = `${pageTitle} · ${siteName}`;
+    previousSiteName = siteName;
     document
       .querySelector('[data-profile-brand]')
-      ?.setAttribute('aria-label', `${profile.name} 个人空间首页`);
+      ?.setAttribute('aria-label', `${siteName}首页`);
     for (const element of document.querySelectorAll('[data-profile-name]'))
       element.textContent = profile.name;
     for (const element of document.querySelectorAll<HTMLImageElement>(

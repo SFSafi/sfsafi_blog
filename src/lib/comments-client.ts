@@ -37,6 +37,8 @@ for (const section of document.querySelectorAll<HTMLElement>(
     date.textContent = new Date(comment.created_at).toLocaleString('zh-CN', {
       timeZone: 'Asia/Shanghai',
     });
+    for (const node of [head, text, date])
+      node.setAttribute('data-user-content', '');
     article.append(head, date);
     if (comment.parent_id) {
       const parent = document.createElement('a');

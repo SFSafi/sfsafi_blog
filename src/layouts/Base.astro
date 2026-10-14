@@ -49,7 +49,7 @@ const path = Astro.url.pathname;
         >
           <span class="brand-mark">s.</span>
           <span>
-            个人空间
+            <span data-site-title>个人空间</span>
             <span class="brand-en">A LITTLE CORNER OF THE INTERNET</span>
           </span>
         </a>
@@ -124,7 +124,7 @@ const path = Astro.url.pathname;
         <header class="topbar">
           <span>生活里的小事，也值得被记住。</span>
           <span class="top-status">
-            <i></i> 个人空间
+            <i></i> <span data-site-title>个人空间</span>
           </span>
         </header>
         <main id="main" tabindex="-1">
@@ -156,6 +156,7 @@ const path = Astro.url.pathname;
       <p id="image-caption" aria-live="polite"></p>
     </dialog>
     <script>
+      import '../lib/site-copy-client';
       import '../lib/profile-client';
       const theme = document.querySelector<HTMLSelectElement>('#theme')!;
       theme.value = document.documentElement.dataset.theme || 'system';

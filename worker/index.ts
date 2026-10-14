@@ -1,3 +1,4 @@
+import { applySiteCopy, siteCopyRoute } from './site-copy';
 import {
   commentEmailRoute,
   deliverCommentMail,
@@ -88,7 +89,9 @@ export default {
       return Response.redirect(url.origin + '/' + url.search, 308);
     if (
       url.pathname.endsWith('/index.html') &&
-      /^\/(posts|page|articles|tags|locations)\//.test(url.pathname)
+      /^\/(posts|page|articles|tags|locations|admin|about|search)\//.test(
+        url.pathname,
+      )
     )
       return Response.redirect(
         url.origin + url.pathname.slice(0, -10) + url.search,
@@ -98,7 +101,11 @@ export default {
       /^\/(?:$|posts(?:\/|$)|page(?:\/|$)|articles(?:\/|$)|tags(?:\/|$)|locations(?:\/|$))/.test(
         url.pathname,
       );
-    if (!url.pathname.startsWith('/api/') && !dynamic) {
+    const htmlAsset =
+      /^\/(admin(?:\/|$)|about(?:\/|$)|search(?:\/|$)|404\.html$)/.test(
+        url.pathname,
+      );
+    if (!url.pathname.startsWith('/api/') && !dynamic && !htmlAsset) {
       if (
         /^\/(?:_astro\/|media\/|licenses\/|admin\/|about\/|search\/|favicon\.svg$|404\.html$)/.test(
           url.pathname,
@@ -121,6 +128,19 @@ export default {
         return json({ error: '数据库初始化暂不可用，请稍后重试。' }, 503);
       }
     }
+    if (htmlAsset) {
+      const headers = new Headers(request.headers);
+      headers.set('Accept-Encoding', 'identity');
+      headers.delete('If-None-Match');
+      headers.delete('If-Modified-Since');
+      return applySiteCopy(
+        request,
+        env,
+        await env.ASSETS.fetch(
+          new Request(request.url, { method: request.method, headers }),
+        ),
+      );
+    }
     if (!url.pathname.startsWith('/api/')) {
       if (!url.pathname.endsWith('/'))
         return Response.redirect(
@@ -128,9 +148,11 @@ export default {
           308,
         );
       try {
-        return (
+        return await applySiteCopy(
+          request,
+          env,
           (await pageRoute(request, env)) ||
-          new Response('Not found', { status: 404 })
+            new Response('Not found', { status: 404 }),
         );
       } catch {
         return new Response('页面暂不可用，请稍后重试。', {
@@ -142,6 +164,8 @@ export default {
         });
       }
     }
+    const copyResponse = await siteCopyRoute(request, env);
+    if (copyResponse) return copyResponse;
     const emailResponse = await commentEmailRoute(request, env);
     if (emailResponse) return emailResponse;
     const qqResponse = await qqAdminRoute(request, env);

@@ -1,0 +1,68 @@
+---
+import Admin from '../../layouts/Admin.astro';
+---
+
+<Admin title="网站文案">
+  <section class="page-heading">
+    <h1>
+      让文字<span>像你。</span>
+    </h1>
+    <p>统一编辑站名、导航、页面介绍、关于页、按钮与提示，保存后直接生效。</p>
+  </section>
+  <section class="editor-panel">
+    <p id="copy-status" role="status">
+      正在验证站主身份…
+    </p>
+    <form id="copy-form">
+      <fieldset disabled>
+        <label>
+          网站名称
+          <input name="siteTitle" maxlength="120" required />
+        </label>
+        <label class="editor-check">
+          <input name="includeAdmin" type="checkbox" />
+          也应用到管理界面的文案
+        </label>
+        <p>
+          头像、昵称和简介在<a href="/admin/profile/">资料管理</a>
+          编辑；文章与评论正文不会被网站文案替换。
+        </p>
+        <div class="admin-toolbar">
+          <input
+            id="copy-query"
+            type="search"
+            placeholder="查找页面上出现的文字"
+            aria-label="查找文案"
+          />
+          <select id="copy-group" aria-label="文案分类">
+            <option value="">所有分类</option>
+            <option value="读者界面">读者界面</option>
+            <option value="管理界面">管理界面</option>
+            <option value="提示与交互">提示与交互</option>
+          </select>
+        </div>
+        <p data-copy-skip>
+          动态文案中的 {0}、{1}{' '}
+          等代表昵称、数量等内容，请保留这些位置，可以调整顺序。每项最多 4000
+          字。
+        </p>
+        <div id="copy-list"></div>
+        <button type="button" id="copy-more" hidden>
+          显示更多文案
+        </button>
+        <div class="admin-savebar">
+          <button type="submit">保存文案</button>
+          <button type="button" id="copy-reset">
+            全部恢复默认（保存后生效）
+          </button>
+          <a href="/" target="_blank" rel="noopener">
+            查看网站 ↗
+          </a>
+        </div>
+      </fieldset>
+    </form>
+  </section>
+  <script>
+    import '../../lib/site-settings-client';
+  </script>
+</Admin>

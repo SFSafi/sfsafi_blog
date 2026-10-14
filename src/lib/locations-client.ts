@@ -43,6 +43,7 @@ async function refreshLocations() {
         for (const post of list) {
           const link = document.createElement('a');
           const title = document.createElement('h2');
+          title.setAttribute('data-user-content', '');
           title.textContent = post.title;
           const label = document.createElement('small');
           label.textContent = selected;
@@ -62,6 +63,7 @@ async function refreshLocations() {
           const link = document.createElement('a');
           link.href = `/locations/?place=${encodeURIComponent(label)}`;
           const title = document.createElement('h2');
+          title.setAttribute('data-user-content', '');
           title.textContent = label;
           const count = document.createElement('small');
           count.textContent = `${posts.filter((post) => post.label === label).length} 条记录`;

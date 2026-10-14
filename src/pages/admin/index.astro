@@ -1,0 +1,68 @@
+---
+import Admin from '../../layouts/Admin.astro';
+---
+
+<Admin title="管理概览">
+  <section class="page-heading">
+    <h1>
+      管理这个<span>空间。</span>
+    </h1>
+    <p>从写一篇内容开始，也可以调整网站文案、资料和评论。</p>
+  </section>
+  <p id="dashboard-status" role="status">
+    正在验证站主身份…
+  </p>
+  <section class="admin-counts" aria-label="内容概览">
+    <a href="/admin/posts/?status=published">
+      <strong data-count="published">—</strong>
+      <span>已发布</span>
+    </a>
+    <a href="/admin/posts/?status=draft">
+      <strong data-count="draft">—</strong>
+      <span>草稿</span>
+    </a>
+    <a href="/admin/posts/?status=archived">
+      <strong data-count="archived">—</strong>
+      <span>归档</span>
+    </a>
+    <a href="/admin/posts/?status=trash">
+      <strong data-count="trash">—</strong>
+      <span>回收站</span>
+    </a>
+  </section>
+  <section class="admin-quicklinks">
+    <a href="/admin/write/" aria-label="写一篇新内容 →">
+      <strong>写一篇新内容 →</strong>
+      <p>动态与文章都在这里写作、预览和发布。</p>
+    </a>
+    <a href="/admin/posts/" aria-label="修改或删除文章 →">
+      <strong>修改或删除文章 →</strong>
+      <p>编辑已发布内容，撤回为草稿，或移入回收站。</p>
+    </a>
+    <a href="/admin/site/" aria-label="编辑网站文案 →">
+      <strong>编辑网站文案 →</strong>
+      <p>站名、页面介绍、导航、关于页、按钮和提示。</p>
+    </a>
+    <a href="/admin/profile/" aria-label="更新头像与资料 →">
+      <strong>更新头像与资料 →</strong>
+      <p>昵称、头像、简介和个人位置。</p>
+    </a>
+  </section>
+  <script>
+    import { adminRequest } from '../../lib/admin-request';
+    const status = document.querySelector('#dashboard-status')!;
+    void (async () => {
+      try {
+        const data = await adminRequest('/api/admin/posts');
+        for (const node of document.querySelectorAll<HTMLElement>(
+          '[data-count]',
+        ))
+          node.textContent = String(data.counts?.[node.dataset.count!] || 0);
+        status.textContent = '站主身份已确认。';
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : '载入失败。';
+      }
+    })();
+  </script>
+</Admin>

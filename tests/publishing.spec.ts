@@ -132,6 +132,347 @@ async function fixture(enableMail = false) {
     },
   };
 }
+async function routeFixture(
+  context: BrowserContext,
+  f: Awaited<ReturnType<typeof fixture>>,
+  auth = true,
+) {
+  await context.route(base + '/**', async (route) => {
+    const request = route.request();
+    const response = await f.mf.dispatchFetch(request.url(), {
+      method: request.method(),
+      headers: {
+        ...request.headers(),
+        origin: base,
+        ...(auth ? { 'cf-access-jwt-assertion': f.token } : {}),
+      },
+      body: request.postDataBuffer() || undefined,
+    });
+    await route.fulfill({
+      status: response.status,
+      headers: Object.fromEntries(response.headers),
+      body: Buffer.from(await response.arrayBuffer()),
+    });
+  });
+}
+test('管理重构：已发布修改、回收站/恢复、种子不复活与唯一站主权限', async () => {
+  const f = await fixture();
+  try {
+    const id = 'post-' + crypto.randomUUID();
+    const body = {
+      id,
+      revision: 0,
+      title: '可以修改的文章',
+      kind: 'article',
+      body: '管理重构测试',
+      excerpt: '',
+      tags: ['重构'],
+      location: '',
+      pinned: false,
+    };
+    expect((await f.dispatch('/api/admin/posts', body)).status).toBe(200);
+    const published = (await (
+      await f.dispatch('/api/admin/posts/' + id + '/publish', { revision: 1 })
+    ).json()) as any;
+    const edited = (await (
+      await f.dispatch('/api/admin/posts', {
+        ...body,
+        revision: 2,
+        title: '修改后标题',
+        body: '修改后正文',
+      })
+    ).json()) as any;
+    expect(edited.status).toBe('published');
+    expect(edited.firstPublishedAt).toBe(published.firstPublishedAt);
+    expect(
+      await (await f.dispatch('/posts/' + id + '/', undefined, false)).text(),
+    ).toContain('修改后正文');
+    expect(
+      (
+        await f.dispatch(
+          '/api/admin/posts/' + id + '/delete',
+          { revision: 3, confirm: true },
+          f.other,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (await f.dispatch('/api/admin/posts/' + id + '/delete', { revision: 3 }))
+        .status,
+    ).toBe(400);
+    const removed = (await (
+      await f.dispatch('/api/admin/posts/' + id + '/delete', {
+        revision: 3,
+        confirm: true,
+      })
+    ).json()) as any;
+    expect(removed.deletedAt).toBeTruthy();
+    expect(
+      (await f.dispatch('/posts/' + id + '/', undefined, false)).status,
+    ).toBe(404);
+    expect(
+      JSON.stringify(
+        await (
+          await f.dispatch('/api/search', { query: '修改后正文' }, false)
+        ).json(),
+      ),
+    ).not.toContain(id);
+    expect(
+      (await f.dispatch('/api/admin/posts/' + id + '/publish', { revision: 4 }))
+        .status,
+    ).toBe(409);
+    expect(
+      (
+        (await (
+          await f.dispatch('/api/admin/posts?status=trash')
+        ).json()) as any
+      ).items[0].id,
+    ).toBe(id);
+    await f.restart();
+    expect(
+      (await f.dispatch('/posts/' + id + '/', undefined, false)).status,
+    ).toBe(404);
+    const restored = (await (
+      await f.dispatch('/api/admin/posts/' + id + '/restore', { revision: 4 })
+    ).json()) as any;
+    expect(restored.status).toBe('draft');
+    expect(restored.deletedAt).toBeUndefined();
+    expect(
+      (await f.dispatch('/posts/' + id + '/', undefined, false)).status,
+    ).toBe(404);
+    expect(
+      (await f.dispatch('/api/admin/posts/' + id + '/publish', { revision: 5 }))
+        .status,
+    ).toBe(200);
+    const db = await f.mf.getD1Database('DB');
+    expect(
+      (
+        (await db
+          .prepare(
+            'SELECT COUNT(*) AS count FROM publication_outbox WHERE post_id=?',
+          )
+          .bind(id)
+          .first()) as any
+      ).count,
+    ).toBe(1);
+    const sample = (await (
+      await f.dispatch('/api/admin/posts/hello-space')
+    ).json()) as any;
+    await f.dispatch('/api/admin/posts/hello-space/delete', {
+      revision: sample.revision,
+      confirm: true,
+    });
+    await f.restart();
+    expect(
+      (await f.dispatch('/posts/hello-space/', undefined, false)).status,
+    ).toBe(404);
+  } finally {
+    await f.close();
+  }
+});
+test('站点文案：私有写权限、即时静态/动态页面、安全文字与内容隔离', async () => {
+  const f = await fixture();
+  try {
+    expect(
+      (await f.dispatch('/api/admin/site-copy', undefined, false)).status,
+    ).toBe(401);
+    const current = (await (
+      await f.dispatch('/api/admin/site-copy')
+    ).json()) as any;
+    const key = (text: string) => {
+      const found = current.catalog.find((e: any) => e.text === text);
+      expect(found, text).toBeTruthy();
+      return found.id;
+    };
+    expect(current.catalog.some((e: any) => /^\{\d+\}$/.test(e.text))).toBe(
+      false,
+    );
+    const overrides = {
+      [key('生活里的小事，也值得被记住。')]: '改过的顶部介绍',
+      [key('很高兴，你路过这里。')]: '<script>window.copyInjected=1</script>',
+      [key('慢慢写，慢慢生活。')]: '新的首页介绍',
+      [key('管理概览')]: '仅后台的导航文案',
+      [key('搜索中…')]: '正在认真找…',
+    };
+    const payload = {
+      revision: 0,
+      siteTitle: '可编辑的站名 · 生活',
+      includeAdmin: true,
+      overrides,
+    };
+    expect(
+      (await f.dispatch('/api/admin/site-copy', payload, f.other)).status,
+    ).toBe(403);
+    expect(
+      (
+        await f.dispatch('/api/admin/site-copy', payload, f.token, {
+          Origin: 'https://evil.test',
+        })
+      ).status,
+    ).toBe(403);
+    expect((await f.dispatch('/api/admin/site-copy', payload)).status).toBe(
+      200,
+    );
+    expect((await f.dispatch('/api/admin/site-copy', payload)).status).toBe(
+      409,
+    );
+    const home = await (await f.dispatch('/', undefined, false)).text();
+    expect(home).toContain('新的首页介绍');
+    expect(home).toContain('改过的顶部介绍');
+    expect(home).not.toContain('仅后台的导航文案');
+    const about = await (await f.dispatch('/about/', undefined, false)).text();
+    expect(about).toContain(
+      '&lt;script&gt;window.copyInjected=1&lt;/script&gt;',
+    );
+    expect(about).not.toContain('<script>window.copyInjected');
+    expect(
+      await (await f.dispatch('/admin/', undefined, false)).text(),
+    ).not.toContain('仅后台的导航文案');
+    expect(await (await f.dispatch('/admin/')).text()).toContain(
+      '仅后台的导航文案',
+    );
+    const id = 'post-' + crypto.randomUUID();
+    await f.dispatch('/api/admin/posts', {
+      id,
+      revision: 0,
+      title: '很高兴，你路过这里。',
+      kind: 'article',
+      body: '慢慢写，慢慢生活。',
+      excerpt: '',
+      tags: [],
+      location: '',
+      pinned: false,
+    });
+    await f.dispatch('/api/admin/posts/' + id + '/publish', { revision: 1 });
+    const detail = await (
+      await f.dispatch('/posts/' + id + '/', undefined, false)
+    ).text();
+    expect(detail).toContain(
+      `class="post-title"><a href="/posts/${id}/">很高兴，你路过这里。</a>`,
+    );
+    expect(detail).toContain('<p>慢慢写，慢慢生活。</p>');
+    await f.restart();
+    expect(
+      await (await f.dispatch('/about/', undefined, false)).text(),
+    ).toContain('window.copyInjected');
+  } finally {
+    await f.close();
+  }
+});
+test('统一后台浏览器：直接发布、编辑、删除/恢复、文案保存及手机布局', async ({
+  browser,
+}) => {
+  const f = await fixture();
+  const owner = await browser.newContext(),
+    reader = await browser.newContext();
+  let releaseSearch: (() => void) | undefined;
+  try {
+    await routeFixture(owner, f);
+    await routeFixture(reader, f, false);
+    const page = await owner.newPage();
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.goto(base + '/admin/');
+    await expect(page.locator('#dashboard-status')).toContainText('已确认');
+    await page
+      .getByRole('link', { name: '写一篇新内容 →', exact: true })
+      .click();
+    await expect(page.getByLabel('正文（Markdown）')).toBeEnabled();
+    await page
+      .getByRole('combobox', { name: '类型', exact: true })
+      .selectOption('article');
+    await page.getByLabel('标题', { exact: true }).fill('重构后台浏览器文章');
+    await page.getByLabel('正文（Markdown）').fill('可以直接发布的正文。');
+    await page.getByRole('button', { name: '发布', exact: true }).click();
+    await expect(page.locator('#editor-status')).toContainText('发布成功');
+    const id = new URL(page.url()).searchParams.get('id')!;
+    await page.getByLabel('正文（Markdown）').fill('发布后修改的正文。');
+    await page.getByRole('button', { name: '保存', exact: true }).click();
+    await expect(page.locator('#editor-status')).toContainText('已上线');
+    const read = await reader.newPage();
+    await read.goto(base + '/posts/' + id + '/');
+    await expect(read.locator('.post-body')).toContainText('发布后修改');
+    await page.goto(base + '/admin/posts/');
+    await page.getByLabel('搜索内容').fill('重构后台浏览器文章');
+    await page.getByRole('button', { name: '搜索', exact: true }).click();
+    await expect(page.locator('.admin-post-row')).toHaveCount(1);
+    await page.getByRole('button', { name: '删除', exact: true }).click();
+    await expect(page.locator('#posts-status')).toContainText('回收站');
+    await page.getByLabel('内容状态').selectOption('trash');
+    await expect(page.locator('.admin-post-row')).toHaveCount(1);
+    await page.getByRole('button', { name: '恢复为草稿', exact: true }).click();
+    await expect(page.locator('#posts-status')).toContainText('恢复');
+    await page.goto(base + '/admin/site/');
+    await expect(page.locator('#copy-form fieldset')).toBeEnabled();
+    await page.getByLabel('网站名称', { exact: true }).fill('我的站点 · 新版');
+    await page
+      .getByLabel('查找文案', { exact: true })
+      .fill('很高兴，你路过这里。');
+    await page
+      .getByLabel('修改文案：很高兴，你路过这里。', { exact: true })
+      .fill('这是后台保存的关于页。');
+    await page.getByLabel('查找文案', { exact: true }).fill('搜索中…');
+    await page
+      .getByLabel('修改文案：搜索中…', { exact: true })
+      .fill('正在认真找…');
+    await page.getByRole('button', { name: '保存文案', exact: true }).click();
+    await expect(page.locator('#copy-status')).toContainText('文案已保存');
+    await read.goto(base + '/about/');
+    await expect(read.locator('.page-heading p')).toHaveText(
+      '这是后台保存的关于页。',
+    );
+    await expect(read).toHaveTitle('关于我 · 我的站点 · 新版');
+    await expect(read.locator('[data-site-title]').first()).toHaveText(
+      '我的站点 · 新版',
+    );
+    const pendingSearch = new Promise<void>((resolve) => {
+      releaseSearch = resolve;
+    });
+    await reader.route(base + '/api/search', async (route) => {
+      await pendingSearch;
+      await route.fallback();
+    });
+    await read.goto(base + '/search/');
+    await read.getByLabel('你想找什么？', { exact: true }).fill('Astro');
+    await read.getByRole('button', { name: '搜索', exact: true }).click();
+    await expect(
+      read.getByRole('button', { name: '正在认真找…', exact: true }),
+    ).toBeDisabled();
+    releaseSearch?.();
+    await expect(
+      read.getByRole('button', { name: '搜索', exact: true }),
+    ).toBeEnabled();
+    for (const route of [
+      '/admin/',
+      '/admin/posts/',
+      '/admin/site/',
+      '/admin/write/?id=' + id,
+    ]) {
+      await page.goto(base + route);
+      for (const width of [360, 390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          route + ' ' + width,
+        ).toBe(true);
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await page.goto(base + '/admin/posts/');
+    await page.screenshot({
+      path: '/workspace/sfsafi-admin-rebuilt.png',
+      fullPage: true,
+    });
+  } finally {
+    releaseSearch?.();
+    await owner.unrouteAll({ behavior: 'wait' });
+    await reader.unrouteAll({ behavior: 'wait' });
+    await owner.close();
+    await reader.close();
+    await f.close();
+  }
+});
 test('评论邮件：私有邮箱、确认订阅、公开回复、持久去重与退订', async () => {
   const f = await fixture(true);
   try {

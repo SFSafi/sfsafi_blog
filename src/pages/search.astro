@@ -31,8 +31,8 @@ import Base from '../layouts/Base.astro';
       回答可能有误，请以原文为准。
     </p>
     <p id="search-status" role="status" aria-live="polite"></p>
-    <div id="search-answer" hidden></div>
-    <ul id="search-results" aria-label="搜索结果"></ul>
+    <div id="search-answer" data-user-content hidden></div>
+    <ul data-user-content id="search-results" aria-label="搜索结果"></ul>
   </section>
   <script>
     const form = document.querySelector<HTMLFormElement>('#search-form')!;

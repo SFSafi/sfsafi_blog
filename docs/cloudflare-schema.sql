@@ -61,3 +61,8 @@ CREATE TABLE IF NOT EXISTS comment_mail (
  attempts INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL DEFAULT 0,
  created_at INTEGER NOT NULL, sent_at INTEGER, provider_id TEXT
 );
+
+CREATE TABLE IF NOT EXISTS site_settings (
+ id TEXT PRIMARY KEY, document TEXT NOT NULL,
+ revision INTEGER NOT NULL, updated_at TEXT NOT NULL
+);

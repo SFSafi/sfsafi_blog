@@ -111,7 +111,7 @@ export async function pageRoute(
       (await repo.getTags())
         .map(
           (t) =>
-            `<a href="/tags/${encodeURIComponent(t)}/"><span>#</span><h2>${escape(t)}</h2><span>↗</span></a>`,
+            `<a href="/tags/${encodeURIComponent(t)}/"><span>#</span><h2 data-user-content>${escape(t)}</h2><span>↗</span></a>`,
         )
         .join('') +
       '</div>';

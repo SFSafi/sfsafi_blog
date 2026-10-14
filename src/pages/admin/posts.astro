@@ -1,70 +1,42 @@
 ---
-import Base from '../../layouts/Base.astro';
+import Admin from '../../layouts/Admin.astro';
 ---
 
-<Base title="文章管理">
+<Admin title="文章与动态">
   <section class="page-heading">
     <h1>
-      管理<span>记录。</span>
+      管理<span>你的内容。</span>
     </h1>
-    <p>草稿与发布内容仅站主可管理。</p>
-    <a href="/admin/write/">写一篇新内容 →</a> ·{' '}
-    <a href="/admin/comments/">评论管理</a> ·{' '}
-    <a href="/admin/notifications/">更新推送状态</a>·{' '}
-    <a href="/admin/media/">视频转码</a>
+    <p>已发布文章可随时修改；删除后进入回收站，不再公开。</p>
+    <a href="/admin/write/">写一篇新内容 →</a>
   </section>
   <section class="editor-panel">
+    <form id="posts-filter" class="admin-toolbar">
+      <input
+        id="posts-query"
+        type="search"
+        maxlength="120"
+        placeholder="搜索标题或正文"
+        aria-label="搜索内容"
+      />
+      <select id="posts-filter-status" aria-label="内容状态">
+        <option value="all">全部内容</option>
+        <option value="published">已发布</option>
+        <option value="draft">草稿</option>
+        <option value="archived">归档</option>
+        <option value="trash">回收站</option>
+      </select>
+      <button type="submit">搜索</button>
+    </form>
     <p id="posts-status" role="status">
       正在验证站主身份…
     </p>
-    <ul id="posts-list"></ul>
+    <div id="posts-list"></div>
     <button id="posts-more" hidden>
       下一页
     </button>
   </section>
   <script>
-    let page = 1;
-    const list = document.querySelector('#posts-list')!,
-      status = document.querySelector('#posts-status')!,
-      more = document.querySelector<HTMLButtonElement>('#posts-more')!;
-    async function load() {
-      more.disabled = true;
-      try {
-        const response = await fetch('/api/admin/posts?page=' + page, {
-          signal: AbortSignal.timeout(10000),
-        });
-        const data = await response.json();
-        if (!response.ok) throw Error(data.error);
-        for (const post of data.items) {
-          const item = document.createElement('li'),
-            link = document.createElement('a'),
-            meta = document.createElement('p');
-          link.href = '/admin/write/?id=' + encodeURIComponent(post.id);
-          link.textContent = post.title || '未命名';
-          meta.textContent =
-            (post.status === 'published'
-              ? '已发布'
-              : post.status === 'archived'
-                ? '已归档'
-                : '草稿') +
-            ' · 版本 ' +
-            post.revision;
-          item.append(link, meta);
-          list.append(item);
-        }
-        more.hidden = !data.hasMore;
-        status.textContent = '已载入内容。';
-      } catch (error) {
-        status.textContent =
-          error instanceof Error ? error.message : '读取失败。';
-      } finally {
-        more.disabled = false;
-      }
-    }
-    more.addEventListener('click', () => {
-      page++;
-      void load();
-    });
-    void load();
+    import '../../lib/posts-client';
   </script>
-</Base>
+</Admin>

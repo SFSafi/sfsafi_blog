@@ -1,5 +1,5 @@
 ---
-import Base from '../../layouts/Base.astro';
+import Base from '../../layouts/Admin.astro';
 ---
 
 <Base title="写文">
@@ -9,7 +9,8 @@ import Base from '../../layouts/Base.astro';
       写下<span>这一刻。</span>
     </h1>
     <p>只有站主可以保存、编辑和发布。</p>
-    <a href="/admin/posts/">管理文章 →</a>· <a href="/admin/media/">视频转码</a>
+    <a href="/admin/posts/">返回文章列表 →</a>·{' '}
+    <a href="/admin/media/">视频转码</a>
   </section>
   <section class="editor-panel">
     <p id="editor-status" role="status">
@@ -60,6 +61,12 @@ import Base from '../../layouts/Base.astro';
           </button>
           <button type="button" id="editor-archive" hidden>
             归档
+          </button>
+          <button type="button" id="editor-delete" class="danger" hidden>
+            删除
+          </button>
+          <button type="button" id="editor-restore" hidden>
+            恢复为草稿
           </button>
           <a id="editor-live-link" hidden target="_blank" rel="noopener">
             查看原文 ↗

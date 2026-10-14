@@ -1,4 +1,5 @@
 import type { Post } from './content';
+import { adminRequest } from './admin-request';
 const form = document.querySelector<HTMLFormElement>('#editor-form')!,
   fieldset = form.querySelector<HTMLFieldSetElement>('fieldset')!,
   status = document.querySelector<HTMLElement>('#editor-status')!;
@@ -16,23 +17,23 @@ let id =
   busy = false;
 const field = (name: string) =>
   form.elements.namedItem(name) as HTMLInputElement;
-async function request(path: string, body?: unknown) {
-  const response = await fetch(path, {
-    signal: AbortSignal.timeout(10000),
-    ...(body === undefined
-      ? {}
-      : {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        }),
-  });
-  const data = await response.json();
-  if (!response.ok) throw Error(data.error || '请求失败。');
-  return data;
-}
+const request = adminRequest;
 function loaded(post: Post) {
   current = post;
+  for (const input of form.querySelectorAll<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >('input,textarea,select'))
+    input.disabled = Boolean(post.deletedAt);
+  form.querySelector<HTMLButtonElement>('[type=submit]')!.disabled = Boolean(
+    post.deletedAt,
+  );
+  document.querySelector<HTMLButtonElement>('#editor-preview')!.disabled =
+    Boolean(post.deletedAt);
+  document.querySelector<HTMLButtonElement>('#editor-delete')!.hidden = Boolean(
+    post.deletedAt,
+  );
+  document.querySelector<HTMLButtonElement>('#editor-restore')!.hidden =
+    !post.deletedAt;
   id = post.id;
   revision = post.revision;
   for (const name of ['kind', 'title', 'body', 'excerpt'])
@@ -41,9 +42,9 @@ function loaded(post: Post) {
   field('location').value = post.location?.label || '';
   field('pinned').checked = post.pinned;
   archive.hidden = post.status === 'archived';
-  publish.disabled = false;
+  publish.disabled = Boolean(post.deletedAt);
   publish.textContent = post.status === 'published' ? '已发布' : '发布';
-  withdraw.hidden = post.status !== 'published';
+  withdraw.hidden = post.status !== 'published' || Boolean(post.deletedAt);
   live.hidden = post.status !== 'published';
   live.href = post.canonicalPath;
   dirty = false;
@@ -97,7 +98,8 @@ form.addEventListener('submit', (event) => {
 });
 publish.addEventListener('click', () => {
   void run(async () => {
-    if (!revision || dirty) throw Error('请先保存当前修改，再发布。');
+    if (!revision || dirty)
+      loaded(await request('/api/admin/posts', payload()));
     if (current?.status === 'published') {
       status.textContent = '该内容已发布；修改后保存即可更新。';
       return;
@@ -136,8 +138,13 @@ window.addEventListener('beforeunload', (event) => {
     if (new URLSearchParams(location.search).has('id'))
       loaded(await request('/api/admin/posts/' + encodeURIComponent(id)));
     fieldset.disabled = false;
+    publish.disabled = Boolean(current?.deletedAt);
     status.textContent = revision
-      ? '已载入内容。'
+      ? current?.deletedAt
+        ? '内容在回收站，可以查看或恢复为草稿。'
+        : current?.status === 'published'
+          ? '已载入已发布内容；保存修改会立即更新公开页面。'
+          : '已载入内容。'
       : '身份已确认，可以开始写文。';
   } catch (error) {
     status.textContent =
@@ -153,3 +160,32 @@ archive.addEventListener('click', () => {
     status.textContent = '内容已归档，文字仍保留。';
   });
 });
+
+document.querySelector('#editor-delete')!.addEventListener('click', () => {
+  if (
+    !confirm(
+      '删除后移入回收站，公开页面不再可读，可以恢复为草稿。未保存修改不会保留。确认删除？',
+    )
+  )
+    return;
+  void run(async () => {
+    if (!revision) throw Error('请先保存内容。');
+    loaded(
+      await request('/api/admin/posts/' + id + '/delete', {
+        revision,
+        confirm: true,
+      }),
+    );
+    status.textContent = '已移入回收站，请恢复后再编辑或发布。';
+  });
+});
+document.querySelector('#editor-restore')!.addEventListener(
+  'click',
+  () =>
+    void run(async () => {
+      loaded(
+        await request('/api/admin/posts/' + id + '/restore', { revision }),
+      );
+      status.textContent = '已恢复为草稿，需要重新发布才能公开。';
+    }),
+);

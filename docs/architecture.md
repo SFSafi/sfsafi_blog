@@ -60,3 +60,9 @@ Wrangler 固定 4.100.0（配套稳定 Miniflare 4），避免当前最新 CLI �
 ## FFmpeg 接入（2026-10-14）
 
 站主要求接入真实 FFmpeg，并确认暂时没有服务器，先完成代码/部署说明。`transcoder/service.py` 为独立服务，SQLite 持久任务、受限 FFmpeg 子进程、私有持久卷；`worker/media.ts` 仅站主鉴权后代理上传/任务/Range，不将服务密钥发送给浏览器。`/admin/media/` 默认标准自动转码、可选档位和保留原素材，支持任务 URL 恢复、实际大小和私有播放预览。Docker Compose 与维护步骤见 ffmpeg.md。R2、公开媒体读取、正文绑定尚未实现，发布仍只接受原有文字，不把私有转码结果标为公开媒体。
+
+## 统一后台与可编辑文案（2026-10-14）
+
+`src/layouts/Admin.astro` 使用独立管理布局，统一导航与主题，不加载公开阅读页的媒体/分享脚本。内容列表支持状态筛选与正文搜索，写文支持自动先保存再发布。删除在 contents.document 写入 deletedAt 并将状态设为 archived；公开读取仍限定 published，回收站编辑/发布拒绝，恢复变为 draft。版本 CAS 与邮件取消在 D1 batch 事务内执行；历史行保留，避免样例 INSERT OR IGNORE 在重启后重新导入。稳定 ID、统计、历史评论及首次发布事件去重规则保持。
+
+0008 新增 site_settings，文案写入有 Access + OWNER_EMAIL、同源、长度、目录键及占位符校验和版本 CAS。scripts/prepare-copy.mjs 在构建阶段生成规范化默认文字目录；parse5 仅用于构建，不进入浏览器/Worker。Worker 使用原生 HTMLRewriter 为静态与动态 HTML 应用纯文本文案、注入该页允许的设置，响应 no-store，浏览器 MutationObserver 处理后续交互文本；分享图片使用同一文案函数。显式保护用户内容、代码、表单值及结构化资料，后端限制管理员专用文案的可见范围。网站名称单独控制品牌与页面标题，文章标题不随文案设置变化。操作见 admin.md。

@@ -1,0 +1,80 @@
+---
+import '../styles/global.css';
+import '../styles/admin.css';
+import 'misans/lib/Normal/MiSans-Medium.min.css';
+const { title = '管理中心' } = Astro.props;
+const path = Astro.url.pathname;
+const links = [
+  ['/admin/', '管理概览'],
+  ['/admin/posts/', '文章与动态'],
+  ['/admin/write/', '新建内容'],
+  ['/admin/site/', '网站文案'],
+  ['/admin/profile/', '头像与资料'],
+  ['/admin/comments/', '评论管理'],
+  ['/admin/locations/', '内容地点'],
+  ['/admin/media/', '视频转码'],
+  ['/admin/notifications/', '通知与推送'],
+];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{title} · SFSafi 的个人空间</title>
+    <link rel="icon" href="/favicon.svg" />
+    <script is:inline>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('space-theme') || 'system';
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">
+      跳到主要内容
+    </a>
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <a href="/admin/" class="admin-brand">
+          <strong data-profile-name>SFSafi</strong> <span>管理中心</span>
+        </a>
+        <p>写作、维护与发布。</p>
+        <nav aria-label="管理导航">
+          {links.map(([href, label]) => (
+            <a href={href} aria-current={path === href ? 'page' : undefined}>
+              {label}
+            </a>
+          ))}
+        </nav>
+        <a class="admin-return" href="/">
+          打开网站 ↗
+        </a>
+        <label for="admin-theme">界面主题</label>
+        <select id="admin-theme">
+          <option value="system">跟随系统</option>
+          <option value="light">浅色</option>
+          <option value="dark">深色</option>
+          <option value="sage">青苔</option>
+        </select>
+      </aside>
+      <main id="main" tabindex="-1" class="admin-main">
+        <slot />
+      </main>
+    </div>
+    <script>
+      import '../lib/site-copy-client';
+      import '../lib/profile-client';
+      const theme = document.querySelector<HTMLSelectElement>('#admin-theme')!;
+      theme.value = document.documentElement.dataset.theme || 'system';
+      theme.addEventListener('change', () => {
+        document.documentElement.dataset.theme = theme.value;
+        try {
+          localStorage.setItem('space-theme', theme.value);
+        } catch {}
+      });
+    </script>
+  </body>
+</html>

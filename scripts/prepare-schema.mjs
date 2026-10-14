@@ -7,6 +7,7 @@ const names = [
   '0005_content.sql',
   '0006_comments.sql',
   '0007_comment_email.sql',
+  '0008_site_settings.sql',
 ];
 const migrations = names.map((name) => {
   const sql = readFileSync(

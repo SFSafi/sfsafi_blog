@@ -1,5 +1,5 @@
 ---
-import Base from '../../layouts/Base.astro';
+import Base from '../../layouts/Admin.astro';
 ---
 
 <Base title="手动管理地点">
@@ -60,6 +60,7 @@ import Base from '../../layouts/Base.astro';
         for (const post of posts) {
           const option = document.createElement('option');
           option.value = post.postId;
+          option.setAttribute('data-user-content', '');
           option.textContent = post.title;
           select.append(option);
         }
